@@ -16,27 +16,14 @@
 //----------------------        2'b00: DECERR. NOT supported.
 
 // asi: Axi Slave Interface
-module asi #(
-    parameter 
-              //--- AXI PARAMETERS
-              AXI_DW     = 128                 , // AXI DATA     BUS WIDTH
-              AXI_AW     = 40                  , // AXI ADDRESS  BUS WIDTH
-              AXI_IW     = 8                   , // AXI ID TAG   BITS WIDTH
-              AXI_LW     = 8                   , // AXI AWLEN    BITS WIDTH
-              AXI_SW     = 3                   , // AXI AWSIZE   BITS WIDTH
-              AXI_BURSTW = 2                   , // AXI AWBURST  BITS WIDTH
-              AXI_RESPW  = 2                   , // AXI B(R)RESP BITS WIDTH
-              AXI_WSTRBW = AXI_DW/8            , // AXI WSTRB    BITS WIDTH
-              //--- SLAVE PARAMETERS
-              SLV_OD     = 4                   , // SLAVE OUTSTANDING  DEPTH
-              SLV_WD     = 64                  , // SLAVE WDATA BUFFER DEPTH
-              SLV_RD     = 64                  , // SLAVE RDATA BUFFER DEPTH
-              SLV_BD     = 4                   , // SLAVE BRESP BUFFER DEPTH
-              SLV_BITS   = AXI_DW              ,
-              SLV_BYTES  = SLV_BITS/8          ,
-              SLV_BYTEW  = $clog2(SLV_BYTES+1) ,
-              //--- FIFO CHOICE
-              ALTERA_FIFO = 0
+module asi import asi_pkg::*;
+#(
+    SLV_OD  = 4  , // SLAVE OUTSTANDING  DEPTH
+    SLV_WD  = 64 , // SLAVE WDATA BUFFER DEPTH
+    SLV_RD  = 64 , // SLAVE RDATA BUFFER DEPTH
+    SLV_BD  = 4  , // SLAVE BRESP BUFFER DEPTH
+    SLV_WS  = 2  , // SLAVE RAM READ DATA WAIT STATE(READ CYCLE DELAY)
+    FPGA_IP = 0    // 0-INFERENCE; 1-ALTERA IP; 2-XILINX IP
 )(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK        ,
@@ -61,7 +48,7 @@ module asi #(
     output logic                    WREADY      ,
     //---- AXI WRITE RESPONSE SIGNALS -----------
     output logic [AXI_IW-1     : 0] BID         ,
-    output logic [AXI_RESPW-1  : 0] BRESP       ,
+    output logic [AXI_BRESPW-1 : 0] BRESP       ,
     output logic                    BVALID      ,
     input  logic                    BREADY      ,
     //---- READ ADDRESS CHANNEL -----------------
@@ -79,7 +66,7 @@ module asi #(
     //---- READ DATA CHANNEL --------------------
     output logic [AXI_IW-1     : 0] RID         ,
     output logic [AXI_DW-1     : 0] RDATA       ,
-    output logic [AXI_RESPW-1  : 0] RRESP       ,
+    output logic [AXI_RRESPW-1 : 0] RRESP       ,
     output logic                    RLAST       ,
     output logic                    RVALID      ,
     input  logic                    RREADY      ,
@@ -104,39 +91,48 @@ module asi #(
     output logic [AXI_BURSTW-1 : 0] m_rburst    ,
     //R CHANNEL
     output logic [AXI_AW-1     : 0] m_raddr     ,
-    output logic                    m_rvalid    ,
-    input  logic [AXI_DW-1     : 0] m_rdata     ,
-    input  logic                    m_slverr     
+    input  logic [AXI_DW-1     : 0] m_rdata      
 );
 
+logic m_re     ; // asi read request("m_raddr" valid)
+logic m_rvalid ; // rdata valid("m_rdata" valid)
+logic m_slverr ; // slave device error flag
+//------------------------------------
+//------ READ WAIT STATE CONTROL -----
+//------------------------------------
+generate 
+    if(SLV_WS==0) begin: WS0
+        assign m_rvalid = m_re;
+    end: WS0
+    else if(SLV_WS==1) begin: WS1
+        always_ff @(posedge usr_clk)
+            m_rvalid <= m_re;
+    end: WS1
+    else if(SLV_WS>=2) begin: WS_N
+        logic [SLV_WS-2 : 0] m_re_ff ;
+        always_ff @(posedge usr_clk)
+            {m_rvalid, m_re_ff} <= {m_re_ff, m_re};
+    end: WS_N
+endgenerate
+//------------------------------------
+//------ slave error flag assign -----
+//------------------------------------
+assign m_slverr = 1'b0; // TODO: register address space ONLY accepts 32-bit transfer size. assert this flag if not.
+
 asi_w #(
-    .AXI_DW     ( AXI_DW     ),
-    .AXI_AW     ( AXI_AW     ),
-    .AXI_IW     ( AXI_IW     ),
-    .AXI_LW     ( AXI_LW     ),
-    .AXI_SW     ( AXI_SW     ),
-    .AXI_BURSTW ( AXI_BURSTW ),
-    .AXI_BRESPW ( AXI_RESPW  ),
-    .AXI_WSTRBW ( AXI_WSTRBW ),
-    .SLV_OD     ( SLV_OD     ),
-    .SLV_WD     ( SLV_WD     ),
-    .SLV_BD     ( SLV_BD     ),
-    .ALTERA_FIFO( ALTERA_FIFO)
+    .SLV_OD  ( SLV_OD  ),
+    .SLV_WD  ( SLV_WD  ),
+    .SLV_BD  ( SLV_BD  ),
+    .FPGA_IP ( FPGA_IP )
 ) w_inf (
     .*
 );
 
 asi_r #(
-    .AXI_DW     ( AXI_DW     ),
-    .AXI_AW     ( AXI_AW     ),
-    .AXI_IW     ( AXI_IW     ),
-    .AXI_LW     ( AXI_LW     ),
-    .AXI_SW     ( AXI_SW     ),
-    .AXI_BURSTW ( AXI_BURSTW ),
-    .AXI_RRESPW ( AXI_RESPW  ),
-    .SLV_OD     ( SLV_OD     ),
-    .SLV_RD     ( SLV_RD     ),
-    .ALTERA_FIFO( ALTERA_FIFO)
+    .SLV_OD  ( SLV_OD  ),
+    .SLV_RD  ( SLV_RD  ),
+    .SLV_WS  ( SLV_WS  ),
+    .FPGA_IP ( FPGA_IP )
 ) r_inf (
     .*
 );

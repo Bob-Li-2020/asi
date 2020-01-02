@@ -1,7 +1,7 @@
 module afifo #(
     parameter AW=20,
     DW=128,
-    ALTERA_FIFO=0
+    FPGA_IP=0
 )(
     input  logic            wreset_n ,
     input  logic            rreset_n ,
@@ -14,7 +14,7 @@ module afifo #(
     input  logic [DW-1 : 0] d        ,
     output logic [DW-1 : 0] q         
 );
-generate if(!ALTERA_FIFO) begin: UTIL_AFIFO
+generate if(FPGA_IP==0) begin: UTIL_AFIFO
     wire EmptyN;
     wire FullN;
     assign wfull = ~FullN;
@@ -29,8 +29,8 @@ generate if(!ALTERA_FIFO) begin: UTIL_AFIFO
         .RRstN     ( rreset_n ),
         .Read      ( re       ),
         .Write     ( we       ),
-        .EmptyN    ( EmptyN  ),
-        .FullN     ( FullN   ),
+        .EmptyN    ( EmptyN   ),
+        .FullN     ( FullN    ),
         .RFullN(),
         .WData     ( d        ),
         .RData     ( q        ),
@@ -38,7 +38,7 @@ generate if(!ALTERA_FIFO) begin: UTIL_AFIFO
         .RNum(),
         .TEST_MODE ( 1'b0     )
     );
-end else begin: ALTERA_AFIFO
+end else if(FPGA_IP==1) begin: ALTERA_AFIFO
     dcfifo u_fifoa 
     (
         .aclr (~wreset_n|~rreset_n),
