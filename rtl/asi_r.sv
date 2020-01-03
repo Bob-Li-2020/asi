@@ -54,7 +54,9 @@ module asi_r import asi_pkg::*;
     output logic                    m_re        ,
     input  logic [AXI_DW-1     : 0] m_rdata     ,
     input  logic                    m_rvalid    ,
-    input  logic                    m_slverr     
+    input  logic                    m_rslverr   ,
+    //ARBITER SIGNALS
+    output logic                    m_rbusy
 );
 
 //------------------------------------
@@ -175,7 +177,8 @@ assign m_rlen         = st_cur==BP_FIRST ? aq_len   : aq_len_latch;
 assign m_rsize        = st_cur==BP_FIRST ? aq_size  : aq_size_latch;
 assign m_rburst       = st_cur==BP_FIRST ? aq_burst : aq_burst_latch;
 assign m_raddr        = st_cur==BP_FIRST ? start_addr : burst_addr;
-assign m_re           = ~aff_rempty && st_cur==BP_FIRST || st_cur==BP_BURST;
+assign m_re           = aff_re | st_cur==BP_BURST;
+assign m_rbusy        = m_re;
 //------------------------------------
 //------ EASY ASSIGNMENTS ------------
 //------------------------------------
@@ -230,7 +233,7 @@ end
 //------------------------------------
 //------ STATE MACHINES CONTROL ------
 //------------------------------------
-assign burst_last = (m_re && aq_len=='0 && st_cur==BP_FIRST) || (m_re && burst_cc==aq_len_latch && st_cur==BP_BURST);
+assign burst_last = (m_re && aq_len=='0 && st_cur==BP_FIRST) || (burst_cc==aq_len_latch && st_cur==BP_BURST);
 always_ff @(posedge clk or negedge rst_n) begin 
     if(!rst_n) 
         st_cur <= BP_IDLE; 
@@ -254,8 +257,8 @@ always_ff @(posedge clk or negedge rst_n) begin
         burst_addr <= st_nxt==BP_BURST ? burst_addr_nxt[0 +: AXI_AW] : 'x;
     end
     else if(st_cur==BP_BURST) begin
-        burst_cc   <= m_re ? burst_cc+1'b1 : burst_cc;
-        burst_addr <= m_re ? burst_addr_nxt[0 +: AXI_AW] : burst_addr;
+        burst_cc   <= burst_cc+1'b1;
+        burst_addr <= burst_addr_nxt[0 +: AXI_AW];
     end
 end
 //------------------------------------

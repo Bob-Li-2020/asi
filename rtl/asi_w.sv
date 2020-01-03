@@ -200,6 +200,7 @@ assign m_wdata        = wq_data            ;
 assign m_wstrb        = wq_strb            ;
 assign m_wlast        = wq_last            ;
 assign m_we           = wff_re             ;
+assign m_wbusy        = aff_re | st_cur==BP_BURST;
 //------------------------------------
 //------ EASY ASSIGNMENTS ------------
 //------------------------------------

@@ -96,7 +96,9 @@ module asi import asi_pkg::*;
 
 logic m_re     ; // asi read request("m_raddr" valid)
 logic m_rvalid ; // rdata valid("m_rdata" valid)
-logic m_slverr ; // slave device error flag
+logic m_rslverr ; // slave device error flag
+logic m_wbusy  ;
+logic m_rbusy  ;
 //------------------------------------
 //------ READ WAIT STATE CONTROL -----
 //------------------------------------
@@ -117,7 +119,7 @@ endgenerate
 //------------------------------------
 //------ slave error flag assign -----
 //------------------------------------
-assign m_slverr = 1'b0; // TODO: register address space ONLY accepts 32-bit transfer size. assert this flag if not.
+assign m_rslverr = 1'b0; // TODO: register address space ONLY accepts 32-bit transfer size. assert this flag if not.
 
 asi_w #(
     .SLV_OD  ( SLV_OD  ),
