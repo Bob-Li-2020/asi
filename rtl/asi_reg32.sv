@@ -1,16 +1,17 @@
 // input: axi slave interface output(128-bit data)
 // output: register configure(32-bit data)
 
-module asi_reg32 #(
-    parameter AXI_SW     = 3,
-              AXI_AW     = 32,
-              AXI_DW     = 128,
-              AXI_WSTRBW = AXI_DW/8,
-              REG_AW     = 20,
-              REG_DW     = 32,
-              REG_WSTRBW = REG_DW/8,
-              M          = $clog2(AXI_DW/REG_DW),
-              L          = $clog2(REG_DW/8)
+module asi_reg32 
+#(
+    AXI_SW     = 3,
+    AXI_AW     = 32,
+    AXI_DW     = 128,
+    AXI_WSTRBW = AXI_DW/8,
+    REG_AW     = 20,
+    REG_DW     = 32,
+    REG_WSTRBW = REG_DW/8,
+    M          = $clog2(AXI_DW/REG_DW),
+    L          = $clog2(REG_DW/8)
 )(
     input  logic                    rst_n    ,
     input  logic                    clk      ,
@@ -82,6 +83,7 @@ always_comb begin
         if(i==wbls) begin
             m_wdata = s_wdata[i*REG_DW +: REG_DW];
             m_wstrb = s_wstrb[i*REG_WSTRBW +: REG_WSTRBW];
+        end
     end
 end
 //--read

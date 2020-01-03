@@ -16,14 +16,29 @@
 //----------------------        2'b00: DECERR. NOT supported.
 
 // asi: Axi Slave Interface
-module asi import asi_pkg::*;
+module asi //import asi_pkg::*;
 #(
-    SLV_OD  = 4  , // SLAVE OUTSTANDING  DEPTH
-    SLV_WD  = 64 , // SLAVE WDATA BUFFER DEPTH
-    SLV_RD  = 64 , // SLAVE RDATA BUFFER DEPTH
-    SLV_BD  = 4  , // SLAVE BRESP BUFFER DEPTH
-    SLV_WS  = 2  , // SLAVE RAM READ DATA WAIT STATE(READ CYCLE DELAY)
-    FPGA_IP = 0    // 0-INFERENCE; 1-ALTERA IP; 2-XILINX IP
+    //--- AXI BIT WIDTHs 
+    AXI_DW     = 128                 , // AXI DATA    BUS WIDTH
+    AXI_AW     = 40                  , // AXI ADDRESS BUS WIDTH
+    AXI_IW     = 8                   , // AXI ID TAG  BITS WIDTH
+    AXI_LW     = 8                   , // AXI AWLEN   BITS WIDTH
+    AXI_SW     = 3                   , // AXI AWSIZE  BITS WIDTH
+    AXI_BURSTW = 2                   , // AXI AWBURST BITS WIDTH
+    AXI_BRESPW = 2                   , // AXI BRESP   BITS WIDTH
+    AXI_RRESPW = 2                   , // AXI RRESP   BITS WIDTH
+    //--- ASI SLAVE CONFIGURE
+    SLV_OD     = 4                   , // SLAVE OUTSTANDING DEPTH
+    SLV_RD     = 64                  , // SLAVE READ BUFFER DEPTH
+    SLV_WS     = 2                   , // SLAVE READ WAIT STATES CYCLE
+    SLV_WD     = 64                  , // SLAVE WRITE BUFFER DEPTH
+    SLV_BD     = 4                   , // SLAVE WRITE RESPONSE BUFFER DEPTH
+    SLV_ARB    = 0                   , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
+    //--- DERIVED PARAMETERS
+    AXI_WSTRBW = AXI_DW/8            , // AXI WSTRB BITS WIDTH
+    SLV_BITS   = AXI_DW              , 
+    SLV_BYTES  = SLV_BITS/8          ,
+    SLV_BYTEW  = $clog2(SLV_BYTES+1)  
 )(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK        ,
@@ -73,30 +88,60 @@ module asi import asi_pkg::*;
     //---- USER LOGIC SIGNALS -------------------
     input  logic                    usr_clk     ,
     input  logic                    usr_reset_n ,
-    //AW CHANNEL
-    output logic [AXI_IW-1     : 0] m_wid       ,
-    output logic [AXI_LW-1     : 0] m_wlen      ,
-    output logic [AXI_SW-1     : 0] m_wsize     ,
-    output logic [AXI_BURSTW-1 : 0] m_wburst    ,
     //W CHANNEL
-    output logic [AXI_AW-1     : 0] m_waddr     ,
     output logic [AXI_DW-1     : 0] m_wdata     ,
     output logic [AXI_WSTRBW-1 : 0] m_wstrb     ,
-    output logic                    m_wlast     ,
-    output logic                    m_wvalid    ,
-    //AR CHANNEL
-    output logic [AXI_IW-1     : 0] m_rid       ,
-    output logic [AXI_LW-1     : 0] m_rlen      ,
-    output logic [AXI_SW-1     : 0] m_rsize     ,
-    output logic [AXI_BURSTW-1 : 0] m_rburst    ,
+    output logic                    m_we        ,
     //R CHANNEL
-    output logic [AXI_AW-1     : 0] m_raddr     ,
+    output logic [AXI_AW-1     : 0] m_addr      ,
     input  logic [AXI_DW-1     : 0] m_rdata      
 );
 
-logic m_re     ; // asi read request("m_raddr" valid)
-logic m_rvalid ; // rdata valid("m_rdata" valid)
-logic m_slverr ; // slave device error flag
+typedef enum logic [1:0] {ARB_IDLE=2'b00, ARB_READ, ARB_WRITE } TYPE_ARB;
+typedef enum logic { RGNT=1'b0, WGNT } TYPE_GNT;
+//------------------------------------
+//------ EASY SIGNALS ----------------
+//------------------------------------
+wire                     rlast         ;
+wire                     wlast         ;
+wire                     arff_v        ;
+wire                     awff_v        ;
+//------------------------------------
+//------ asi SIGNALS -----------------
+//------------------------------------
+logic                    m_re          ; // asi read request("m_raddr" valid)
+logic                    m_rlast       ; // asi read request last cycle
+logic                    m_rvalid      ; // rdata valid("m_rdata" valid)
+logic                    m_rslverr     ; // slave device error flag
+logic                    m_arff_rvalid ; // (AR FIFO NOT EMPTY) && (BP_st_cur==BP_FIRST)
+logic                    m_awff_rvalid ; // (AW FIFO NOT EMPTY) && (BP_st_cur==BP_FIRST)
+logic                    rgranted      ;
+logic                    wgranted      ;
+//AW CHANNEL
+logic [AXI_IW-1     : 0] m_wid         ;
+logic [AXI_LW-1     : 0] m_wlen        ;
+logic [AXI_SW-1     : 0] m_wsize       ;
+logic [AXI_BURSTW-1 : 0] m_wburst      ;
+//W CHANNEL
+logic                    m_wlast       ;
+//AR CHANNEL
+logic [AXI_IW-1     : 0] m_rid         ;
+logic [AXI_LW-1     : 0] m_rlen        ;
+logic [AXI_SW-1     : 0] m_rsize       ;
+logic [AXI_BURSTW-1 : 0] m_rburst      ;
+//ADDRESSES
+logic [AXI_AW-1     : 0] m_waddr       ;
+logic [AXI_AW-1     : 0] m_raddr       ;
+//------------------------------------
+//------ asi SIGNALS-busy ------------
+//------------------------------------
+logic                    m_wbusy       ;
+logic                    m_rbusy       ;
+//------------------------------------
+//------ ARBITER STATE MACHINE -------
+//------------------------------------
+TYPE_ARB st_cur;
+TYPE_ARB st_nxt;
 //------------------------------------
 //------ READ WAIT STATE CONTROL -----
 //------------------------------------
@@ -117,25 +162,98 @@ endgenerate
 //------------------------------------
 //------ slave error flag assign -----
 //------------------------------------
-assign m_slverr = 1'b0; // TODO: register address space ONLY accepts 32-bit transfer size. assert this flag if not.
+assign m_rslverr = 1'b0             ; // TODO: register address space ONLY accepts 32-bit transfer size. assert this flag if not.
+//------------------------------------
+//------ EASY SIGNALS ASSIGN ---------
+//------------------------------------
+assign rlast     = m_rlast          ;
+assign wlast     = m_wlast          ;
+assign arff_v    = m_arff_rvalid    ;
+assign awff_v    = m_awff_rvalid    ;
+//------------------------------------
+//------ ARBITER STATE MACHINE -------
+//------------------------------------
+assign m_addr    = m_we ? m_waddr : m_raddr;
+assign rgranted  = st_cur==ARB_READ ; 
+assign wgranted  = st_cur==ARB_WRITE;
+always_ff @(posedge usr_clk or negedge usr_reset_n) begin
+    if(!usr_reset_n) begin
+        st_cur <= ARB_IDLE;
+    end
+    else begin
+        st_cur <= st_nxt;
+    end
+end
+always_comb begin
+    case(st_cur)
+        ARB_IDLE: begin
+            st_nxt = st_cur;
+            if(arff_v & (~awff_v | SLV_ARB))
+                st_nxt = ARB_READ;
+            if(awff_v & (~arff_v | ~SLV_ARB))
+                st_nxt = ARB_WRITE;
+        end
+        ARB_READ: st_nxt = rlast ? (awff_v ? ARB_WRITE : ARB_IDLE) : st_cur;
+        ARB_WRITE: st_nxt = wlast ? (arff_v ? ARB_READ : ARB_IDLE) : st_cur;
+        default: st_nxt = ARB_IDLE;
+    endcase
+end
 
+//------------------------------------
+//------ asi_w/r INSTANCES -----------
+//------------------------------------
 asi_w #(
-    .SLV_OD  ( SLV_OD  ),
-    .SLV_WD  ( SLV_WD  ),
-    .SLV_BD  ( SLV_BD  ),
-    .FPGA_IP ( FPGA_IP )
-) w_inf (
+    //--- AXI BIT WIDTHs
+    .AXI_DW     ( AXI_DW     ),
+    .AXI_AW     ( AXI_AW     ),
+    .AXI_IW     ( AXI_IW     ),
+    .AXI_LW     ( AXI_LW     ),
+    .AXI_SW     ( AXI_SW     ),
+    .AXI_BURSTW ( AXI_BURSTW ),
+    .AXI_BRESPW ( AXI_BRESPW ),
+    .AXI_RRESPW ( AXI_RRESPW ),
+    //--- ASI SLAVE CONFIGURE
+    .SLV_OD     ( SLV_OD     ),
+    .SLV_RD     ( SLV_RD     ),
+    .SLV_WS     ( SLV_WS     ),
+    .SLV_WD     ( SLV_WD     ),
+    .SLV_BD     ( SLV_BD     ),
+    .SLV_ARB    ( SLV_ARB    ),
+    //--- DERIVED PARAMETERS
+    .AXI_WSTRBW ( AXI_WSTRBW ),
+    .SLV_BITS   ( SLV_BITS   ),
+    .SLV_BYTES  ( SLV_BYTES  ),
+    .SLV_BYTEW  ( SLV_BYTEW  )
+) w_inf ( 
     .*
 );
 
 asi_r #(
-    .SLV_OD  ( SLV_OD  ),
-    .SLV_RD  ( SLV_RD  ),
-    .SLV_WS  ( SLV_WS  ),
-    .FPGA_IP ( FPGA_IP )
-) r_inf (
+    //--- AXI BIT WIDTHs
+    .AXI_DW     ( AXI_DW     ),
+    .AXI_AW     ( AXI_AW     ),
+    .AXI_IW     ( AXI_IW     ),
+    .AXI_LW     ( AXI_LW     ),
+    .AXI_SW     ( AXI_SW     ),
+    .AXI_BURSTW ( AXI_BURSTW ),
+    .AXI_BRESPW ( AXI_BRESPW ),
+    .AXI_RRESPW ( AXI_RRESPW ),
+    //--- ASI SLAVE CONFIGURE
+    .SLV_OD     ( SLV_OD     ),
+    .SLV_RD     ( SLV_RD     ),
+    .SLV_WS     ( SLV_WS     ),
+    .SLV_WD     ( SLV_WD     ),
+    .SLV_BD     ( SLV_BD     ),
+    .SLV_ARB    ( SLV_ARB    ),
+    //--- DERIVED PARAMETERS
+    .AXI_WSTRBW ( AXI_WSTRBW ),
+    .SLV_BITS   ( SLV_BITS   ),
+    .SLV_BYTES  ( SLV_BYTES  ),
+    .SLV_BYTEW  ( SLV_BYTEW  )
+) r_inf ( 
     .*
 );
 
 endmodule
+
 

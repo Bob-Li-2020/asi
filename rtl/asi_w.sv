@@ -16,12 +16,29 @@
 //----------------------        2'b00: DECERR. NOT supported.
 
 // asi_w: Axi Slave Interface Write
-module asi_w import asi_pkg::*;
+module asi_w //import asi_pkg::*;
 #(
-    SLV_OD  = 4  , 
-    SLV_WD  = 64 , 
-    SLV_BD  = 4  , 
-    FPGA_IP = 0   
+    //--- AXI BIT WIDTHs 
+    AXI_DW     = 128                 , // AXI DATA    BUS WIDTH
+    AXI_AW     = 40                  , // AXI ADDRESS BUS WIDTH
+    AXI_IW     = 8                   , // AXI ID TAG  BITS WIDTH
+    AXI_LW     = 8                   , // AXI AWLEN   BITS WIDTH
+    AXI_SW     = 3                   , // AXI AWSIZE  BITS WIDTH
+    AXI_BURSTW = 2                   , // AXI AWBURST BITS WIDTH
+    AXI_BRESPW = 2                   , // AXI BRESP   BITS WIDTH
+    AXI_RRESPW = 2                   , // AXI RRESP   BITS WIDTH
+    //--- ASI SLAVE CONFIGURE
+    SLV_OD     = 4                   , // SLAVE OUTSTANDING DEPTH
+    SLV_RD     = 64                  , // SLAVE READ BUFFER DEPTH
+    SLV_WS     = 2                   , // SLAVE READ WAIT STATES CYCLE
+    SLV_WD     = 64                  , // SLAVE WRITE BUFFER DEPTH
+    SLV_BD     = 4                   , // SLAVE WRITE RESPONSE BUFFER DEPTH
+    SLV_ARB    = 0                   , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
+    //--- DERIVED PARAMETERS
+    AXI_WSTRBW = AXI_DW/8            , // AXI WSTRB BITS WIDTH
+    SLV_BITS   = AXI_DW              , 
+    SLV_BYTES  = SLV_BITS/8          ,
+    SLV_BYTEW  = $clog2(SLV_BYTES+1)  
 )(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK        ,
@@ -58,7 +75,12 @@ module asi_w import asi_pkg::*;
     output logic [AXI_DW-1     : 0] m_wdata     ,
     output logic [AXI_WSTRBW-1 : 0] m_wstrb     ,
     output logic                    m_wlast     ,
-    output logic                    m_wvalid     
+    output logic                    m_we        ,
+    //ARBITER SIGNALS
+    output logic                    m_wbusy     ,
+    output logic                    m_awff_rvalid,
+    input  logic                    wgranted
+    
 );
 //------------------------------------
 //------ INTERFACE PARAMETERS --------
@@ -69,6 +91,10 @@ localparam AFF_DW = AXI_IW + AXI_AW + AXI_LW + AXI_SW + AXI_BURSTW,
 localparam OADDR_DEPTH = SLV_OD , // outstanding addresses buffer depth
            WDATA_DEPTH = SLV_WD , // write data buffer depth
            BRESP_DEPTH = SLV_BD ; // write response buffer depth
+localparam [AXI_BURSTW-1 : 0] BT_FIXED     = AXI_BURSTW'(0);
+localparam [AXI_BURSTW-1 : 0] BT_INCR      = AXI_BURSTW'(1);
+localparam [AXI_BURSTW-1 : 0] BT_WRAP      = AXI_BURSTW'(2);
+localparam [AXI_BURSTW-1 : 0] BT_RESERVED  = AXI_BURSTW'(3);
 //----------------------------------------------------------------------------//
 //-- !! TRANSFER MAY OCCUR IN <BP_FIRST> and <BP_BURST> !!--------------------//
 //-- !! RESPONSE MAY OCCUR IN <BP_FIRST>  or <BP_BURST> or <BP_BRESP> !! -----//
@@ -196,7 +222,9 @@ assign m_waddr        = st_cur==BP_FIRST ? start_addr : burst_addr;
 assign m_wdata        = wq_data            ;
 assign m_wstrb        = wq_strb            ;
 assign m_wlast        = wq_last            ;
-assign m_wvalid       = wff_rvalid         ;
+assign m_we           = wff_re             ;
+assign m_wbusy        = aff_re | st_cur==BP_BURST;
+assign m_awff_rvalid  = ~aff_rempty && st_cur==BP_FIRST; 
 //------------------------------------
 //------ EASY ASSIGNMENTS ------------
 //------------------------------------
@@ -213,7 +241,7 @@ assign aff_rreset_n   = usr_reset_n        ;
 assign aff_wclk       = ACLK               ;
 assign aff_rclk       = usr_clk            ;
 assign aff_we         = AWVALID & AWREADY  ;
-assign aff_re         = aff_rvalid         ; 
+assign aff_re         = aff_rvalid & wgranted; 
 assign aff_d          = { AWID, AWADDR, AWLEN, AWSIZE, AWBURST };
 assign { aq_id, aq_addr, aq_len, aq_size, aq_burst } = aff_q;
 //------------------------------------
@@ -224,7 +252,7 @@ assign wff_rreset_n   = usr_reset_n        ;
 assign wff_wclk       = ACLK               ;
 assign wff_rclk       = usr_clk            ;
 assign wff_we         = WVALID & WREADY    ;
-assign wff_re         = wff_rvalid         ;
+assign wff_re         = wff_rvalid & wgranted;
 assign wff_d          = { WDATA, WSTRB, WLAST };
 assign { wq_data, wq_strb, wq_last } = wff_q;
 //------------------------------------
@@ -314,8 +342,7 @@ end
 //------------------------------------
 afifo #(
     .AW      ( $clog2(OADDR_DEPTH) ),
-    .DW      ( AFF_DW              ),
-    .FPGA_IP ( FPGA_IP             )
+    .DW      ( AFF_DW              )
 ) aw_buffer (
     .wreset_n ( aff_wreset_n ),
     .rreset_n ( aff_rreset_n ),
@@ -333,8 +360,7 @@ afifo #(
 //------------------------------------
 afifo #(
     .AW      ( $clog2(WDATA_DEPTH) ),
-    .DW      ( WFF_DW              ),
-    .FPGA_IP ( FPGA_IP             )
+    .DW      ( WFF_DW              )
 ) w_buffer (
     .wreset_n ( wff_wreset_n ),
     .rreset_n ( wff_rreset_n ),
@@ -352,8 +378,7 @@ afifo #(
 //------------------------------------
 afifo #(
     .AW      ( $clog2(BRESP_DEPTH) ),
-    .DW      ( BFF_DW              ),
-    .FPGA_IP ( FPGA_IP             )
+    .DW      ( BFF_DW              )
 ) b_buffer (
     .wreset_n ( bff_wreset_n ),
     .rreset_n ( bff_rreset_n ),

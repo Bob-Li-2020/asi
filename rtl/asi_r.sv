@@ -16,45 +16,67 @@
 //----------------------        2'b00: DECERR. NOT supported.
 
 // asi_r: Axi Slave Interface Read
-module asi_r import asi_pkg::*;
+module asi_r //import asi_pkg::*;
 #(
-    SLV_OD  = 4  , 
-    SLV_RD  = 64 , 
-    SLV_WS  = 2  ,
-    FPGA_IP = 0    
+    //--- AXI BIT WIDTHs 
+    AXI_DW     = 128                 , // AXI DATA    BUS WIDTH
+    AXI_AW     = 40                  , // AXI ADDRESS BUS WIDTH
+    AXI_IW     = 8                   , // AXI ID TAG  BITS WIDTH
+    AXI_LW     = 8                   , // AXI AWLEN   BITS WIDTH
+    AXI_SW     = 3                   , // AXI AWSIZE  BITS WIDTH
+    AXI_BURSTW = 2                   , // AXI AWBURST BITS WIDTH
+    AXI_BRESPW = 2                   , // AXI BRESP   BITS WIDTH
+    AXI_RRESPW = 2                   , // AXI RRESP   BITS WIDTH
+    //--- ASI SLAVE CONFIGURE
+    SLV_OD     = 4                   , // SLAVE OUTSTANDING DEPTH
+    SLV_RD     = 64                  , // SLAVE READ BUFFER DEPTH
+    SLV_WS     = 2                   , // SLAVE READ WAIT STATES CYCLE
+    SLV_WD     = 64                  , // SLAVE WRITE BUFFER DEPTH
+    SLV_BD     = 4                   , // SLAVE WRITE RESPONSE BUFFER DEPTH
+    SLV_ARB    = 0                   , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
+    //--- DERIVED PARAMETERS
+    AXI_WSTRBW = AXI_DW/8            , // AXI WSTRB BITS WIDTH
+    SLV_BITS   = AXI_DW              , 
+    SLV_BYTES  = SLV_BITS/8          ,
+    SLV_BYTEW  = $clog2(SLV_BYTES+1)  
 )(
     //---- AXI GLOBAL SIGNALS -------------------
-    input  logic                    ACLK        ,
-    input  logic                    ARESETn     ,
+    input  logic                    ACLK          ,
+    input  logic                    ARESETn       ,
     //---- READ ADDRESS CHANNEL -----------------
-    input  logic [AXI_IW-1     : 0] ARID        ,
-    input  logic [AXI_AW-1     : 0] ARADDR      ,
-    input  logic [AXI_LW-1     : 0] ARLEN       ,
-    input  logic [AXI_SW-1     : 0] ARSIZE      ,
-    input  logic [AXI_BURSTW-1 : 0] ARBURST     ,
-    input  logic                    ARVALID     ,
-    output logic                    ARREADY     ,
+    input  logic [AXI_IW-1     : 0] ARID          ,
+    input  logic [AXI_AW-1     : 0] ARADDR        ,
+    input  logic [AXI_LW-1     : 0] ARLEN         ,
+    input  logic [AXI_SW-1     : 0] ARSIZE        ,
+    input  logic [AXI_BURSTW-1 : 0] ARBURST       ,
+    input  logic                    ARVALID       ,
+    output logic                    ARREADY       ,
     //---- READ DATA CHANNEL --------------------
-    output logic [AXI_IW-1     : 0] RID         ,
-    output logic [AXI_DW-1     : 0] RDATA       ,
-    output logic [AXI_RRESPW-1 : 0] RRESP       ,
-    output logic                    RLAST       ,
-    output logic                    RVALID      ,
-    input  logic                    RREADY      ,
+    output logic [AXI_IW-1     : 0] RID           ,
+    output logic [AXI_DW-1     : 0] RDATA         ,
+    output logic [AXI_RRESPW-1 : 0] RRESP         ,
+    output logic                    RLAST         ,
+    output logic                    RVALID        ,
+    input  logic                    RREADY        ,
     //---- USER LOGIC SIGNALS -------------------
-    input  logic                    usr_clk     ,
-    input  logic                    usr_reset_n ,
+    input  logic                    usr_clk       ,
+    input  logic                    usr_reset_n   ,
     //AR CHANNEL
-    output logic [AXI_IW-1     : 0] m_rid       ,
-    output logic [AXI_LW-1     : 0] m_rlen      ,
-    output logic [AXI_SW-1     : 0] m_rsize     ,
-    output logic [AXI_BURSTW-1 : 0] m_rburst    ,
+    output logic [AXI_IW-1     : 0] m_rid         ,
+    output logic [AXI_LW-1     : 0] m_rlen        ,
+    output logic [AXI_SW-1     : 0] m_rsize       ,
+    output logic [AXI_BURSTW-1 : 0] m_rburst      ,
     //R CHANNEL
-    output logic [AXI_AW-1     : 0] m_raddr     ,
-    output logic                    m_re        ,
-    input  logic [AXI_DW-1     : 0] m_rdata     ,
-    input  logic                    m_rvalid    ,
-    input  logic                    m_slverr     
+    output logic [AXI_AW-1     : 0] m_raddr       ,
+    output logic                    m_re          ,
+    output logic                    m_rlast       ,
+    input  logic [AXI_DW-1     : 0] m_rdata       ,
+    input  logic                    m_rvalid      ,
+    input  logic                    m_rslverr     ,
+    //ARBITER SIGNALS
+    output logic                    m_rbusy       ,
+    output logic                    m_arff_rvalid ,
+    input  logic                    rgranted       
 );
 
 //------------------------------------
@@ -64,6 +86,10 @@ localparam AFF_DW = AXI_IW + AXI_AW + AXI_LW + AXI_SW + AXI_BURSTW,
            RFF_DW = AXI_IW + AXI_DW + AXI_RRESPW + 1;
 localparam OADDR_DEPTH = SLV_OD , // outstanding addresses buffer depth
            RDATA_DEPTH = SLV_RD ; // read data buffer depth
+localparam [AXI_BURSTW-1 : 0] BT_FIXED     = AXI_BURSTW'(0);
+localparam [AXI_BURSTW-1 : 0] BT_INCR      = AXI_BURSTW'(1);
+localparam [AXI_BURSTW-1 : 0] BT_WRAP      = AXI_BURSTW'(2);
+localparam [AXI_BURSTW-1 : 0] BT_RESERVED  = AXI_BURSTW'(3);
 //------------------------------------
 //------ BURST PHASE DATA TYPE -------
 //------------------------------------
@@ -175,7 +201,10 @@ assign m_rlen         = st_cur==BP_FIRST ? aq_len   : aq_len_latch;
 assign m_rsize        = st_cur==BP_FIRST ? aq_size  : aq_size_latch;
 assign m_rburst       = st_cur==BP_FIRST ? aq_burst : aq_burst_latch;
 assign m_raddr        = st_cur==BP_FIRST ? start_addr : burst_addr;
-assign m_re           = ~aff_rempty && st_cur==BP_FIRST || st_cur==BP_BURST;
+assign m_re           = aff_re | st_cur==BP_BURST;
+assign m_rlast        = burst_last       ;
+assign m_rbusy        = m_re             ;
+assign m_arff_rvalid  = aff_rvalid       ;
 //------------------------------------
 //------ EASY ASSIGNMENTS ------------
 //------------------------------------
@@ -190,7 +219,7 @@ assign aff_rreset_n   = usr_reset_n      ;
 assign aff_wclk       = ACLK             ;
 assign aff_rclk       = usr_clk          ;
 assign aff_we         = ARVALID & ARREADY;
-assign aff_re         = aff_rvalid       ;
+assign aff_re         = aff_rvalid & rgranted;
 assign aff_d          = { ARID, ARADDR, ARLEN, ARSIZE, ARBURST };
 assign { aq_id, aq_addr, aq_len, aq_size, aq_burst } = aff_q;
 //------------------------------------
@@ -230,7 +259,7 @@ end
 //------------------------------------
 //------ STATE MACHINES CONTROL ------
 //------------------------------------
-assign burst_last = (m_re && aq_len=='0 && st_cur==BP_FIRST) || (m_re && burst_cc==aq_len_latch && st_cur==BP_BURST);
+assign burst_last = (m_re && aq_len=='0 && st_cur==BP_FIRST) || (burst_cc==aq_len_latch && st_cur==BP_BURST);
 always_ff @(posedge clk or negedge rst_n) begin 
     if(!rst_n) 
         st_cur <= BP_IDLE; 
@@ -254,8 +283,8 @@ always_ff @(posedge clk or negedge rst_n) begin
         burst_addr <= st_nxt==BP_BURST ? burst_addr_nxt[0 +: AXI_AW] : 'x;
     end
     else if(st_cur==BP_BURST) begin
-        burst_cc   <= m_re ? burst_cc+1'b1 : burst_cc;
-        burst_addr <= m_re ? burst_addr_nxt[0 +: AXI_AW] : burst_addr;
+        burst_cc   <= burst_cc+1'b1;
+        burst_addr <= burst_addr_nxt[0 +: AXI_AW];
     end
 end
 //------------------------------------
@@ -299,8 +328,7 @@ end
 //------------------------------------
 afifo #(
     .AW      ( $clog2(OADDR_DEPTH) ),
-    .DW      ( AFF_DW              ),
-    .FPGA_IP ( FPGA_IP             )
+    .DW      ( AFF_DW              )
 ) ar_buffer (
     .wreset_n ( aff_wreset_n ),
     .rreset_n ( aff_rreset_n ),
@@ -318,8 +346,7 @@ afifo #(
 //------------------------------------
 afifo #(
     .AW      ( $clog2(RDATA_DEPTH) ),
-    .DW      ( RFF_DW              ),
-    .FPGA_IP ( FPGA_IP             )
+    .DW      ( RFF_DW              )
 ) r_buffer (
     .wreset_n ( rff_wreset_n ),
     .rreset_n ( rff_rreset_n ),
