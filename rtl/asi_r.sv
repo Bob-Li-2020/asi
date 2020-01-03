@@ -52,6 +52,7 @@ module asi_r import asi_pkg::*;
     //R CHANNEL
     output logic [AXI_AW-1     : 0] m_raddr     ,
     output logic                    m_re        ,
+    output logic                    m_rlast     ,
     input  logic [AXI_DW-1     : 0] m_rdata     ,
     input  logic                    m_rvalid    ,
     input  logic                    m_rslverr   ,
@@ -178,6 +179,7 @@ assign m_rsize        = st_cur==BP_FIRST ? aq_size  : aq_size_latch;
 assign m_rburst       = st_cur==BP_FIRST ? aq_burst : aq_burst_latch;
 assign m_raddr        = st_cur==BP_FIRST ? start_addr : burst_addr;
 assign m_re           = aff_re | st_cur==BP_BURST;
+assign m_rlast        = burst_last;
 assign m_rbusy        = m_re;
 //------------------------------------
 //------ EASY ASSIGNMENTS ------------

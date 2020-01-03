@@ -95,8 +95,9 @@ module asi import asi_pkg::*;
 );
 
 logic m_re     ; // asi read request("m_raddr" valid)
+logic m_rlast  ; // asi read request last cycle
 logic m_rvalid ; // rdata valid("m_rdata" valid)
-logic m_rslverr ; // slave device error flag
+logic m_rslverr; // slave device error flag
 logic m_wbusy  ;
 logic m_rbusy  ;
 //------------------------------------
