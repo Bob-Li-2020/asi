@@ -83,7 +83,7 @@ module asi import asi_pkg::*;
     output logic [AXI_DW-1     : 0] m_wdata     ,
     output logic [AXI_WSTRBW-1 : 0] m_wstrb     ,
     output logic                    m_wlast     ,
-    output logic                    m_wvalid    ,
+    output logic                    m_we        ,
     //AR CHANNEL
     output logic [AXI_IW-1     : 0] m_rid       ,
     output logic [AXI_LW-1     : 0] m_rlen      ,

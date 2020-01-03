@@ -58,7 +58,10 @@ module asi_w import asi_pkg::*;
     output logic [AXI_DW-1     : 0] m_wdata     ,
     output logic [AXI_WSTRBW-1 : 0] m_wstrb     ,
     output logic                    m_wlast     ,
-    output logic                    m_wvalid     
+    output logic                    m_we        ,
+    //ARBITER SIGNALS
+    output logic                    m_wbusy
+    
 );
 //------------------------------------
 //------ INTERFACE PARAMETERS --------
@@ -196,7 +199,7 @@ assign m_waddr        = st_cur==BP_FIRST ? start_addr : burst_addr;
 assign m_wdata        = wq_data            ;
 assign m_wstrb        = wq_strb            ;
 assign m_wlast        = wq_last            ;
-assign m_wvalid       = wff_rvalid         ;
+assign m_we           = wff_re             ;
 //------------------------------------
 //------ EASY ASSIGNMENTS ------------
 //------------------------------------
