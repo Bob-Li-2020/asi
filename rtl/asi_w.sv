@@ -60,7 +60,9 @@ module asi_w import asi_pkg::*;
     output logic                    m_wlast     ,
     output logic                    m_we        ,
     //ARBITER SIGNALS
-    output logic                    m_wbusy
+    output logic                    m_wbusy     ,
+    output logic                    m_awff_rvalid,
+    input  logic                    wgranted
     
 );
 //------------------------------------
@@ -201,6 +203,7 @@ assign m_wstrb        = wq_strb            ;
 assign m_wlast        = wq_last            ;
 assign m_we           = wff_re             ;
 assign m_wbusy        = aff_re | st_cur==BP_BURST;
+assign m_awff_rvalid  = ~aff_rempty && st_cur==BP_FIRST; 
 //------------------------------------
 //------ EASY ASSIGNMENTS ------------
 //------------------------------------
@@ -217,7 +220,7 @@ assign aff_rreset_n   = usr_reset_n        ;
 assign aff_wclk       = ACLK               ;
 assign aff_rclk       = usr_clk            ;
 assign aff_we         = AWVALID & AWREADY  ;
-assign aff_re         = aff_rvalid         ; 
+assign aff_re         = aff_rvalid & wgranted; 
 assign aff_d          = { AWID, AWADDR, AWLEN, AWSIZE, AWBURST };
 assign { aq_id, aq_addr, aq_len, aq_size, aq_burst } = aff_q;
 //------------------------------------
@@ -228,7 +231,7 @@ assign wff_rreset_n   = usr_reset_n        ;
 assign wff_wclk       = ACLK               ;
 assign wff_rclk       = usr_clk            ;
 assign wff_we         = WVALID & WREADY    ;
-assign wff_re         = wff_rvalid         ;
+assign wff_re         = wff_rvalid & wgranted;
 assign wff_d          = { WDATA, WSTRB, WLAST };
 assign { wq_data, wq_strb, wq_last } = wff_q;
 //------------------------------------

@@ -57,7 +57,9 @@ module asi_r import asi_pkg::*;
     input  logic                    m_rvalid    ,
     input  logic                    m_rslverr   ,
     //ARBITER SIGNALS
-    output logic                    m_rbusy
+    output logic                    m_rbusy     ,
+    output logic                    m_arff_rvalid,
+    input  logic                    rgranted
 );
 
 //------------------------------------
@@ -181,6 +183,7 @@ assign m_raddr        = st_cur==BP_FIRST ? start_addr : burst_addr;
 assign m_re           = aff_re | st_cur==BP_BURST;
 assign m_rlast        = burst_last;
 assign m_rbusy        = m_re;
+assign m_arff_rvalid  = aff_rvalid;
 //------------------------------------
 //------ EASY ASSIGNMENTS ------------
 //------------------------------------
@@ -195,7 +198,7 @@ assign aff_rreset_n   = usr_reset_n      ;
 assign aff_wclk       = ACLK             ;
 assign aff_rclk       = usr_clk          ;
 assign aff_we         = ARVALID & ARREADY;
-assign aff_re         = aff_rvalid       ;
+assign aff_re         = aff_rvalid & rgranted;
 assign aff_d          = { ARID, ARADDR, ARLEN, ARSIZE, ARBURST };
 assign { aq_id, aq_addr, aq_len, aq_size, aq_burst } = aff_q;
 //------------------------------------
