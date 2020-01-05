@@ -18,13 +18,13 @@
 // asi: Axi Slave Interface
 module asi import asi_pkg::*;
 #(
-    SLV_OD  = 4  , // SLAVE OUTSTANDING  DEPTH
-    SLV_WD  = 64 , // SLAVE WDATA BUFFER DEPTH
-    SLV_RD  = 64 , // SLAVE RDATA BUFFER DEPTH
-    SLV_BD  = 4  , // SLAVE BRESP BUFFER DEPTH
-    SLV_WS  = 2  , // SLAVE RAM READ DATA WAIT STATE(READ CYCLE DELAY)
-    READ_FIRST= 0  , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
-    FPGA_IP = 0    // 0-INFERENCE; 1-ALTERA IP; 2-XILINX IP
+    SLV_OD     = 4  , // SLAVE OUTSTANDING  DEPTH
+    SLV_WD     = 64 , // SLAVE WDATA BUFFER DEPTH
+    SLV_RD     = 64 , // SLAVE RDATA BUFFER DEPTH
+    SLV_BD     = 4  , // SLAVE BRESP BUFFER DEPTH
+    SLV_WS     = 2  , // SLAVE RAM READ DATA WAIT STATE(READ CYCLE DELAY)
+    READ_FIRST = 0  , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
+    FPGA_IP    = 0    // 0-INFERENCE; 1-ALTERA IP; 2-XILINX IP
 )(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK        ,
@@ -79,7 +79,7 @@ module asi import asi_pkg::*;
     output logic [AXI_WSTRBW-1 : 0] m_wstrb     ,
     output logic                    m_we        ,
     //R CHANNEL
-    output logic [AXI_AW-1     : 0] m_addr     ,
+    output logic [AXI_AW-1     : 0] m_addr      ,
     input  logic [AXI_DW-1     : 0] m_rdata      
 );
 
@@ -88,41 +88,41 @@ typedef enum logic { RGNT=1'b0, WGNT } TYPE_GNT;
 //------------------------------------
 //------ EASY SIGNALS ----------------
 //------------------------------------
-wire rlast;
-wire wlast;
-wire arff_v;
-wire awff_v;
+wire                     rlast         ;
+wire                     wlast         ;
+wire                     arff_v        ;
+wire                     awff_v        ;
 //------------------------------------
 //------ asi SIGNALS -----------------
 //------------------------------------
-logic m_re     ; // asi read request("m_raddr" valid)
-logic m_rlast  ; // asi read request last cycle
-logic m_rvalid ; // rdata valid("m_rdata" valid)
-logic m_rslverr; // slave device error flag
-logic m_arff_rvalid; // (AR FIFO NOT EMPTY) && (BP_st_cur==BP_FIRST)
-logic m_awff_rvalid; // (AW FIFO NOT EMPTY) && (BP_st_cur==BP_FIRST)
-logic rgranted;
-logic wgranted;
+logic                    m_re          ; // asi read request("m_raddr" valid)
+logic                    m_rlast       ; // asi read request last cycle
+logic                    m_rvalid      ; // rdata valid("m_rdata" valid)
+logic                    m_rslverr     ; // slave device error flag
+logic                    m_arff_rvalid ; // (AR FIFO NOT EMPTY) && (BP_st_cur==BP_FIRST)
+logic                    m_awff_rvalid ; // (AW FIFO NOT EMPTY) && (BP_st_cur==BP_FIRST)
+logic                    rgranted      ;
+logic                    wgranted      ;
 //AW CHANNEL
-logic [AXI_IW-1     : 0] m_wid       ;
-logic [AXI_LW-1     : 0] m_wlen      ;
-logic [AXI_SW-1     : 0] m_wsize     ;
-logic [AXI_BURSTW-1 : 0] m_wburst    ;
+logic [AXI_IW-1     : 0] m_wid         ;
+logic [AXI_LW-1     : 0] m_wlen        ;
+logic [AXI_SW-1     : 0] m_wsize       ;
+logic [AXI_BURSTW-1 : 0] m_wburst      ;
 //W CHANNEL
-logic                    m_wlast     ;
+logic                    m_wlast       ;
 //AR CHANNEL
-logic [AXI_IW-1     : 0] m_rid       ;
-logic [AXI_LW-1     : 0] m_rlen      ;
-logic [AXI_SW-1     : 0] m_rsize     ;
-logic [AXI_BURSTW-1 : 0] m_rburst    ;
+logic [AXI_IW-1     : 0] m_rid         ;
+logic [AXI_LW-1     : 0] m_rlen        ;
+logic [AXI_SW-1     : 0] m_rsize       ;
+logic [AXI_BURSTW-1 : 0] m_rburst      ;
 //ADDRESSES
-logic [AXI_AW-1     : 0] m_waddr     ;
-logic [AXI_AW-1     : 0] m_raddr     ;
+logic [AXI_AW-1     : 0] m_waddr       ;
+logic [AXI_AW-1     : 0] m_raddr       ;
 //------------------------------------
 //------ asi SIGNALS-busy ------------
 //------------------------------------
-logic m_wbusy  ;
-logic m_rbusy  ;
+logic                    m_wbusy       ;
+logic                    m_rbusy       ;
 //------------------------------------
 //------ ARBITER STATE MACHINE -------
 //------------------------------------
@@ -148,20 +148,20 @@ endgenerate
 //------------------------------------
 //------ slave error flag assign -----
 //------------------------------------
-assign m_rslverr = 1'b0; // TODO: register address space ONLY accepts 32-bit transfer size. assert this flag if not.
+assign m_rslverr = 1'b0             ; // TODO: register address space ONLY accepts 32-bit transfer size. assert this flag if not.
 //------------------------------------
 //------ EASY SIGNALS ASSIGN ---------
 //------------------------------------
-assign rlast = m_rlast;
-assign wlast = m_wlast;
-assign arff_v = m_arff_rvalid;
-assign awff_v = m_awff_rvalid;
+assign rlast     = m_rlast          ;
+assign wlast     = m_wlast          ;
+assign arff_v    = m_arff_rvalid    ;
+assign awff_v    = m_awff_rvalid    ;
 //------------------------------------
 //------ ARBITER STATE MACHINE -------
 //------------------------------------
-assign m_addr = m_we ? m_waddr : m_raddr;
-assign rgranted = st_cur==ARB_READ; 
-assign wgranted = st_cur==ARB_WRITE;
+assign m_addr    = m_we ? m_waddr : m_raddr;
+assign rgranted  = st_cur==ARB_READ ; 
+assign wgranted  = st_cur==ARB_WRITE;
 always_ff @(posedge usr_clk or negedge usr_reset_n) begin
     if(!usr_reset_n) begin
         st_cur <= ARB_IDLE;

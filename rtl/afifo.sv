@@ -15,41 +15,41 @@ module afifo #(
     output logic [DW-1 : 0] q         
 );
 generate if(FPGA_IP==0) begin: UTIL_AFIFO
-    wire EmptyN;
-    wire FullN;
-    assign wfull = ~FullN;
+    wire   EmptyN ;
+    wire   FullN  ;
+    assign wfull  = ~FullN ;
     assign rempty = ~EmptyN;
     util_fifoa #(
         .AW ( AW ),
         .DW ( DW )
     ) u_fifoa (
-        .WClk      ( wclk     ),
-        .WRstN     ( wreset_n ),
-        .RClk      ( rclk     ),
-        .RRstN     ( rreset_n ),
-        .Read      ( re       ),
-        .Write     ( we       ),
-        .EmptyN    ( EmptyN   ),
-        .FullN     ( FullN    ),
+        .WClk      ( wclk                ),
+        .WRstN     ( wreset_n            ),
+        .RClk      ( rclk                ),
+        .RRstN     ( rreset_n            ),
+        .Read      ( re                  ),
+        .Write     ( we                  ),
+        .EmptyN    ( EmptyN              ),
+        .FullN     ( FullN               ),
         .RFullN(),
-        .WData     ( d        ),
-        .RData     ( q        ),
+        .WData     ( d                   ),
+        .RData     ( q                   ),
         .WNum(),
         .RNum(),
-        .TEST_MODE ( 1'b0     )
+        .TEST_MODE ( 1'b0                )
     );
 end else if(FPGA_IP==1) begin: ALTERA_AFIFO
     dcfifo u_fifoa 
     (
-        .aclr (~wreset_n|~rreset_n),
-        .data (d),
-        .rdclk (rclk),
-        .rdreq (re),
-        .wrclk (wclk),
-        .wrreq (we),
-        .q (q),
-        .rdempty (rempty),
-        .wrfull (wfull),
+        .aclr      ( ~wreset_n|~rreset_n ),
+        .data      ( d                   ),
+        .rdclk     ( rclk                ),
+        .rdreq     ( re                  ),
+        .wrclk     ( wclk                ),
+        .wrreq     ( we                  ),
+        .q         ( q                   ),
+        .rdempty   ( rempty              ),
+        .wrfull    ( wfull               ),
         .eccstatus (),
         .rdfull (),
         .rdusedw (),
