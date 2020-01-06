@@ -9,11 +9,11 @@ package axi_pkg;
     // SLV ADDRESS RANGE
     localparam SLV_AW=10;
     // ASI PERFORMANCE CONTROL
-    localparam SLV_OD=4,
-               SLV_WD=64,
-               SLV_RD=64,
-               SLV_BD=4,
-               SLV_WS=2,
+    localparam 
+               
+               
+              
+               
                RLAST_EN=1,
                WLAST_EN=1;
     // AXI DERIVED PARAMETERS

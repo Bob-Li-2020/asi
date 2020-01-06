@@ -17,12 +17,7 @@
 
 // asi_w: Axi Slave Interface Write
 module asi_w import asi_pkg::*;
-#(
-    SLV_OD  = 4  , 
-    SLV_WD  = 64 , 
-    SLV_BD  = 4  , 
-    FPGA_IP = 0   
-)(
+(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK        ,
     input  logic                    ARESETn     ,

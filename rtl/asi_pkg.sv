@@ -11,6 +11,13 @@ AXI_SW     = 3                   , // AXI AWSIZE  BITS WIDTH
 AXI_BURSTW = 2                   , // AXI AWBURST BITS WIDTH
 AXI_BRESPW = 2                   , // AXI BRESP   BITS WIDTH
 AXI_RRESPW = 2                   , // AXI RRESP   BITS WIDTH
+//--- ASI SLAVE CONFIGURE
+SLV_OD     = 4                   , 
+SLV_RD     = 64                  , 
+SLV_WS     = 2                   ,
+FPGA_IP    = 0                   ,
+SLV_WD     = 64                  , 
+SLV_BD     = 4                   , 
 //--- DERIVED PARAMETERS
 AXI_WSTRBW = AXI_DW/8            , // AXI WSTRB   BITS WIDTH
 SLV_BITS   = AXI_DW              ,

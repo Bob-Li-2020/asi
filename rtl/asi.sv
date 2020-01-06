@@ -18,13 +18,7 @@
 // asi: Axi Slave Interface
 module asi import asi_pkg::*;
 #(
-    SLV_OD     = 4  , // SLAVE OUTSTANDING  DEPTH
-    SLV_WD     = 64 , // SLAVE WDATA BUFFER DEPTH
-    SLV_RD     = 64 , // SLAVE RDATA BUFFER DEPTH
-    SLV_BD     = 4  , // SLAVE BRESP BUFFER DEPTH
-    SLV_WS     = 2  , // SLAVE RAM READ DATA WAIT STATE(READ CYCLE DELAY)
-    READ_FIRST = 0  , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
-    FPGA_IP    = 0    // 0-INFERENCE; 1-ALTERA IP; 2-XILINX IP
+    READ_FIRST = 0 // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
 )(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK        ,
@@ -188,23 +182,8 @@ end
 //------------------------------------
 //------ asi_w/r INSTANCES -----------
 //------------------------------------
-asi_w #(
-    .SLV_OD  ( SLV_OD  ),
-    .SLV_WD  ( SLV_WD  ),
-    .SLV_BD  ( SLV_BD  ),
-    .FPGA_IP ( FPGA_IP )
-) w_inf (
-    .*
-);
-
-asi_r #(
-    .SLV_OD  ( SLV_OD  ),
-    .SLV_RD  ( SLV_RD  ),
-    .SLV_WS  ( SLV_WS  ),
-    .FPGA_IP ( FPGA_IP )
-) r_inf (
-    .*
-);
+asi_w w_inf ( .*);
+asi_r r_inf ( .*);
 
 endmodule
 

@@ -17,12 +17,7 @@
 
 // asi_r: Axi Slave Interface Read
 module asi_r import asi_pkg::*;
-#(
-    SLV_OD  = 4  , 
-    SLV_RD  = 64 , 
-    SLV_WS  = 2  ,
-    FPGA_IP = 0    
-)(
+(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK          ,
     input  logic                    ARESETn       ,

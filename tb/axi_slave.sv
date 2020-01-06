@@ -77,14 +77,7 @@ logic [AXI_AW-1     : 0] m_addr     ;
 
 assign m_slverr = 1'b0;
 
-asi #(
-	.SLV_OD     ( SLV_OD     ),
-    .SLV_WD     ( SLV_WD     ),
-    .SLV_RD     ( SLV_RD     ),
-    .SLV_BD     ( SLV_RD     ),
-    .SLV_WS     ( SLV_WS     ),
-    .FPGA_IP    ( 0          )
-)u_asi(
+asi u_asi(
     .*
 );
 
