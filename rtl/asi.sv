@@ -138,6 +138,11 @@ logic [AXI_AW-1     : 0] m_raddr       ;
 logic                    m_wbusy       ;
 logic                    m_rbusy       ;
 //------------------------------------
+//------ asi SIGNALS-busy ------------
+//------------------------------------
+logic                    error_w4KB    ;
+logic                    error_r4KB    ;
+//------------------------------------
 //------ ARBITER STATE MACHINE -------
 //------------------------------------
 TYPE_ARB st_cur;
