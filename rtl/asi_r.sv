@@ -302,8 +302,7 @@ end
 //------------------------------------
 afifo #(
     .AW      ( $clog2(OADDR_DEPTH) ),
-    .DW      ( AFF_DW              ),
-    .FPGA_IP ( FPGA_IP             )
+    .DW      ( AFF_DW              )
 ) ar_buffer (
     .wreset_n ( aff_wreset_n ),
     .rreset_n ( aff_rreset_n ),
@@ -321,8 +320,7 @@ afifo #(
 //------------------------------------
 afifo #(
     .AW      ( $clog2(RDATA_DEPTH) ),
-    .DW      ( RFF_DW              ),
-    .FPGA_IP ( FPGA_IP             )
+    .DW      ( RFF_DW              )
 ) r_buffer (
     .wreset_n ( rff_wreset_n ),
     .rreset_n ( rff_rreset_n ),

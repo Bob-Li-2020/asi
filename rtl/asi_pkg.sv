@@ -15,7 +15,6 @@ AXI_RRESPW = 2                   , // AXI RRESP   BITS WIDTH
 SLV_OD     = 4                   , 
 SLV_RD     = 64                  , 
 SLV_WS     = 2                   ,
-FPGA_IP    = 0                   ,
 SLV_WD     = 64                  , 
 SLV_BD     = 4                   , 
 //--- DERIVED PARAMETERS
