@@ -16,8 +16,30 @@
 //----------------------        2'b00: DECERR. NOT supported.
 
 // asi_w: Axi Slave Interface Write
-module asi_w import asi_pkg::*;
-(
+module asi_w //import asi_pkg::*;
+#(
+    //--- AXI BIT WIDTHs 
+    AXI_DW     = 128                 , // AXI DATA    BUS WIDTH
+    AXI_AW     = 40                  , // AXI ADDRESS BUS WIDTH
+    AXI_IW     = 8                   , // AXI ID TAG  BITS WIDTH
+    AXI_LW     = 8                   , // AXI AWLEN   BITS WIDTH
+    AXI_SW     = 3                   , // AXI AWSIZE  BITS WIDTH
+    AXI_BURSTW = 2                   , // AXI AWBURST BITS WIDTH
+    AXI_BRESPW = 2                   , // AXI BRESP   BITS WIDTH
+    AXI_RRESPW = 2                   , // AXI RRESP   BITS WIDTH
+    //--- ASI SLAVE CONFIGURE
+    SLV_OD     = 4                   , // SLAVE OUTSTANDING DEPTH
+    SLV_RD     = 64                  , // SLAVE READ BUFFER DEPTH
+    SLV_WS     = 2                   , // SLAVE READ WAIT STATES CYCLE
+    SLV_WD     = 64                  , // SLAVE WRITE BUFFER DEPTH
+    SLV_BD     = 4                   , // SLAVE WRITE RESPONSE BUFFER DEPTH
+    SLV_ARB    = 0                   , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
+    //--- DERIVED PARAMETERS
+    AXI_WSTRBW = AXI_DW/8            , // AXI WSTRB BITS WIDTH
+    SLV_BITS   = AXI_DW              , 
+    SLV_BYTES  = SLV_BITS/8          ,
+    SLV_BYTEW  = $clog2(SLV_BYTES+1)  
+)(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK        ,
     input  logic                    ARESETn     ,
@@ -69,6 +91,10 @@ localparam AFF_DW = AXI_IW + AXI_AW + AXI_LW + AXI_SW + AXI_BURSTW,
 localparam OADDR_DEPTH = SLV_OD , // outstanding addresses buffer depth
            WDATA_DEPTH = SLV_WD , // write data buffer depth
            BRESP_DEPTH = SLV_BD ; // write response buffer depth
+localparam [AXI_BURSTW-1 : 0] BT_FIXED     = AXI_BURSTW'(0);
+localparam [AXI_BURSTW-1 : 0] BT_INCR      = AXI_BURSTW'(1);
+localparam [AXI_BURSTW-1 : 0] BT_WRAP      = AXI_BURSTW'(2);
+localparam [AXI_BURSTW-1 : 0] BT_RESERVED  = AXI_BURSTW'(3);
 //----------------------------------------------------------------------------//
 //-- !! TRANSFER MAY OCCUR IN <BP_FIRST> and <BP_BURST> !!--------------------//
 //-- !! RESPONSE MAY OCCUR IN <BP_FIRST>  or <BP_BURST> or <BP_BRESP> !! -----//

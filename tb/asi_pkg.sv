@@ -17,6 +17,7 @@ SLV_RD     = 64                  ,
 SLV_WS     = 2                   ,
 SLV_WD     = 64                  , 
 SLV_BD     = 4                   , 
+SLV_ARB    = 0                   , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
 //--- DERIVED PARAMETERS
 AXI_WSTRBW = AXI_DW/8            , // AXI WSTRB   BITS WIDTH
 SLV_BITS   = AXI_DW              ,

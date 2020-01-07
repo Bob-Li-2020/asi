@@ -77,7 +77,29 @@ logic [AXI_AW-1     : 0] m_addr     ;
 
 assign m_slverr = 1'b0;
 
-asi u_asi(
+asi #(
+    //--- AXI BIT WIDTHs
+    .AXI_DW     ( AXI_DW     ),
+    .AXI_AW     ( AXI_AW     ),
+    .AXI_IW     ( AXI_IW     ),
+    .AXI_LW     ( AXI_LW     ),
+    .AXI_SW     ( AXI_SW     ),
+    .AXI_BURSTW ( AXI_BURSTW ),
+    .AXI_BRESPW ( AXI_BRESPW ),
+    .AXI_RRESPW ( AXI_RRESPW ),
+    //--- ASI SLAVE CONFIGURE
+    .SLV_OD     ( SLV_OD     ),
+    .SLV_RD     ( SLV_RD     ),
+    .SLV_WS     ( SLV_WS     ),
+    .SLV_WD     ( SLV_WD     ),
+    .SLV_BD     ( SLV_BD     ),
+    .SLV_ARB    ( SLV_ARB    ),
+    //--- DERIVED PARAMETERS
+    .AXI_WSTRBW ( AXI_WSTRBW ),
+    .SLV_BITS   ( SLV_BITS   ),
+    .SLV_BYTES  ( SLV_BYTES  ),
+    .SLV_BYTEW  ( SLV_BYTEW  )
+) u_asi (
     .*
 );
 

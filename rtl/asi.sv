@@ -16,9 +16,29 @@
 //----------------------        2'b00: DECERR. NOT supported.
 
 // asi: Axi Slave Interface
-module asi import asi_pkg::*;
+module asi //import asi_pkg::*;
 #(
-    READ_FIRST = 0 // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
+    //--- AXI BIT WIDTHs 
+    AXI_DW     = 128                 , // AXI DATA    BUS WIDTH
+    AXI_AW     = 40                  , // AXI ADDRESS BUS WIDTH
+    AXI_IW     = 8                   , // AXI ID TAG  BITS WIDTH
+    AXI_LW     = 8                   , // AXI AWLEN   BITS WIDTH
+    AXI_SW     = 3                   , // AXI AWSIZE  BITS WIDTH
+    AXI_BURSTW = 2                   , // AXI AWBURST BITS WIDTH
+    AXI_BRESPW = 2                   , // AXI BRESP   BITS WIDTH
+    AXI_RRESPW = 2                   , // AXI RRESP   BITS WIDTH
+    //--- ASI SLAVE CONFIGURE
+    SLV_OD     = 4                   , // SLAVE OUTSTANDING DEPTH
+    SLV_RD     = 64                  , // SLAVE READ BUFFER DEPTH
+    SLV_WS     = 2                   , // SLAVE READ WAIT STATES CYCLE
+    SLV_WD     = 64                  , // SLAVE WRITE BUFFER DEPTH
+    SLV_BD     = 4                   , // SLAVE WRITE RESPONSE BUFFER DEPTH
+    SLV_ARB    = 0                   , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
+    //--- DERIVED PARAMETERS
+    AXI_WSTRBW = AXI_DW/8            , // AXI WSTRB BITS WIDTH
+    SLV_BITS   = AXI_DW              , 
+    SLV_BYTES  = SLV_BITS/8          ,
+    SLV_BYTEW  = $clog2(SLV_BYTES+1)  
 )(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK        ,
@@ -168,9 +188,9 @@ always_comb begin
     case(st_cur)
         ARB_IDLE: begin
             st_nxt = st_cur;
-            if(arff_v & (~awff_v | READ_FIRST))
+            if(arff_v & (~awff_v | SLV_ARB))
                 st_nxt = ARB_READ;
-            if(awff_v & (~arff_v | ~READ_FIRST))
+            if(awff_v & (~arff_v | ~SLV_ARB))
                 st_nxt = ARB_WRITE;
         end
         ARB_READ: st_nxt = rlast ? (awff_v ? ARB_WRITE : ARB_IDLE) : st_cur;
@@ -182,8 +202,58 @@ end
 //------------------------------------
 //------ asi_w/r INSTANCES -----------
 //------------------------------------
-asi_w w_inf ( .*);
-asi_r r_inf ( .*);
+asi_w #(
+    //--- AXI BIT WIDTHs
+    .AXI_DW     ( AXI_DW     ),
+    .AXI_AW     ( AXI_AW     ),
+    .AXI_IW     ( AXI_IW     ),
+    .AXI_LW     ( AXI_LW     ),
+    .AXI_SW     ( AXI_SW     ),
+    .AXI_BURSTW ( AXI_BURSTW ),
+    .AXI_BRESPW ( AXI_BRESPW ),
+    .AXI_RRESPW ( AXI_RRESPW ),
+    //--- ASI SLAVE CONFIGURE
+    .SLV_OD     ( SLV_OD     ),
+    .SLV_RD     ( SLV_RD     ),
+    .SLV_WS     ( SLV_WS     ),
+    .SLV_WD     ( SLV_WD     ),
+    .SLV_BD     ( SLV_BD     ),
+    .SLV_ARB    ( SLV_ARB    ),
+    //--- DERIVED PARAMETERS
+    .AXI_WSTRBW ( AXI_WSTRBW ),
+    .SLV_BITS   ( SLV_BITS   ),
+    .SLV_BYTES  ( SLV_BYTES  ),
+    .SLV_BYTEW  ( SLV_BYTEW  )
+) w_inf ( 
+    .*
+);
+
+asi_r #(
+    //--- AXI BIT WIDTHs
+    .AXI_DW     ( AXI_DW     ),
+    .AXI_AW     ( AXI_AW     ),
+    .AXI_IW     ( AXI_IW     ),
+    .AXI_LW     ( AXI_LW     ),
+    .AXI_SW     ( AXI_SW     ),
+    .AXI_BURSTW ( AXI_BURSTW ),
+    .AXI_BRESPW ( AXI_BRESPW ),
+    .AXI_RRESPW ( AXI_RRESPW ),
+    //--- ASI SLAVE CONFIGURE
+    .SLV_OD     ( SLV_OD     ),
+    .SLV_RD     ( SLV_RD     ),
+    .SLV_WS     ( SLV_WS     ),
+    .SLV_WD     ( SLV_WD     ),
+    .SLV_BD     ( SLV_BD     ),
+    .SLV_ARB    ( SLV_ARB    ),
+    //--- DERIVED PARAMETERS
+    .AXI_WSTRBW ( AXI_WSTRBW ),
+    .SLV_BITS   ( SLV_BITS   ),
+    .SLV_BYTES  ( SLV_BYTES  ),
+    .SLV_BYTEW  ( SLV_BYTEW  )
+) r_inf ( 
+    .*
+);
 
 endmodule
+
 

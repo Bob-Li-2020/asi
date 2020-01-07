@@ -83,6 +83,7 @@ always_comb begin
         if(i==wbls) begin
             m_wdata = s_wdata[i*REG_DW +: REG_DW];
             m_wstrb = s_wstrb[i*REG_WSTRBW +: REG_WSTRBW];
+        end
     end
 end
 //--read
