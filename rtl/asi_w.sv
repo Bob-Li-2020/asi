@@ -202,8 +202,8 @@ logic [AXI_BRESPW-1 : 0] m_bresp          ;
 //------ STATE MACHINE VARIABLES -----
 //------------------------------------
 logic                    burst_last       ;
-WBURST_PHASE             st_cur          ;
-WBURST_PHASE             st_nxt          ; 
+WBURST_PHASE             st_cur           ;
+WBURST_PHASE             st_nxt           ; 
 //-------------------------------------------------- LOGIC DESIGNS -----------------------------------------------------//
 //------------------------------------
 //------ OUTPUT PORTS ASSIGN ---------
@@ -222,8 +222,8 @@ assign m_wsize          = st_cur==BP_FIRST ? aq_size  : aq_size_latch;
 assign m_wburst         = st_cur==BP_FIRST ? aq_burst : aq_burst_latch;
 assign m_waddr          = st_cur==BP_FIRST ? start_addr : burst_addr;
 assign m_wdata          = wq_data            ;
-assign m_wstrb          = wq_strb            ;
-assign m_wlast          = wq_last            ;
+assign m_wstrb          = wff_re ? wq_strb : '0;
+assign m_wlast          = wff_re ? wq_last : '0; 
 assign m_we             = wff_re             ;
 assign m_wbusy          = aff_re | st_cur==BP_BURST;
 assign m_awff_rvalid    = ~aff_rempty && st_cur==BP_FIRST; 

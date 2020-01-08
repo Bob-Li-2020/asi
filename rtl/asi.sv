@@ -88,13 +88,15 @@ module asi //import asi_pkg::*;
     //---- USER LOGIC SIGNALS -------------------
     input  logic                    usr_clk     ,
     input  logic                    usr_reset_n ,
+    //ADDRESS
+    output logic [AXI_AW-1     : 0] m_addr      ,
     //W CHANNEL
     output logic [AXI_DW-1     : 0] m_wdata     ,
     output logic [AXI_WSTRBW-1 : 0] m_wstrb     ,
     output logic                    m_we        ,
     //R CHANNEL
-    output logic [AXI_AW-1     : 0] m_addr      ,
-    input  logic [AXI_DW-1     : 0] m_rdata      
+    input  logic [AXI_DW-1     : 0] m_rdata     ,
+    output logic                    m_re          // asi read request("m_raddr" valid)
 );
 
 typedef enum logic [1:0] {ARB_IDLE=2'b00, ARB_READ, ARB_WRITE } TYPE_ARB;
@@ -109,7 +111,6 @@ wire                     awff_v        ;
 //------------------------------------
 //------ asi SIGNALS -----------------
 //------------------------------------
-logic                    m_re          ; // asi read request("m_raddr" valid)
 logic                    m_rlast       ; // asi read request last cycle
 logic                    m_rvalid      ; // rdata valid("m_rdata" valid)
 logic                    m_rslverr     ; // slave device error flag
