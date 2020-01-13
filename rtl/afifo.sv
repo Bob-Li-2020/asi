@@ -16,7 +16,8 @@ module afifo #(
     input  logic [DW-1 : 0] d        ,
     output logic [DW-1 : 0] q         
 );
-
+timeunit 1ns;
+timeprecision 1ps;
 wire   EmptyN ;
 wire   FullN  ;
 assign wfull  = ~FullN ;
@@ -63,6 +64,8 @@ module util_fifoa(WClk, WRstN, Write, FullN , WData, WNum,
                   RClk, RRstN, Read , EmptyN, RData, RFullN, RNum, TEST_MODE
                   );
 
+timeunit 1ns;
+timeprecision 1ps;
 parameter  DW=8; //data width: >0
 parameter  AW=2; //log2(DEPTH): can be 1,2,3,4...
 parameter  RS=0; //reset propagate enable, default: disable
@@ -162,6 +165,8 @@ module util_fifoa_ctrl( WClk, WRstN, Write, FullN , WAddr, WPtrGray, RPtrGray_sy
                         RClk, RRstN, Read , EmptyN, RAddr, RFullN, RPtrGray, WPtrGray_sync, RNum
                        );
 
+timeunit 1ns;
+timeprecision 1ps;
 parameter  DL = 8;
 parameter  PT = 1; //read/write protect
 parameter  FR = 1; //FullN REG out

@@ -98,7 +98,8 @@ module asi //import asi_pkg::*;
     input  logic [AXI_DW-1     : 0] m_rdata     ,
     output logic                    m_re          // asi read request("m_raddr" valid)
 );
-
+timeunit 1ns;
+timeprecision 1ps;
 typedef enum logic [1:0] {ARB_IDLE=2'b00, ARB_READ, ARB_WRITE } TYPE_ARB;
 typedef enum logic { RGNT=1'b0, WGNT } TYPE_GNT;
 //------------------------------------

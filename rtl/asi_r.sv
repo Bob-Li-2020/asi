@@ -81,6 +81,8 @@ module asi_r //import asi_pkg::*;
     output logic                    error_r4KB     
 );
 
+timeunit 1ns;
+timeprecision 1ps;
 //------------------------------------
 //------ INTERFACE PARAMETERS --------
 //------------------------------------

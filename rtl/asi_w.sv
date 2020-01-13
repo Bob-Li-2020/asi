@@ -83,6 +83,8 @@ module asi_w //import asi_pkg::*;
     //ERROR FLAGS
     output logic                    error_w4KB     
 );
+timeunit 1ns;
+timeprecision 1ps;
 //------------------------------------
 //------ INTERFACE PARAMETERS --------
 //------------------------------------
