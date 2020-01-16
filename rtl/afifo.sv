@@ -3,7 +3,8 @@
 // Description: afifo is an asynchronous FIFO(util_fifoa) wrapper. 
 module afifo #(
     parameter AW=20,
-    DW=128
+    DW=128,
+    AFN=2**AW-4 // almost full number
 )(
     input  logic            wreset_n ,
     input  logic            rreset_n ,
@@ -12,6 +13,7 @@ module afifo #(
     input  logic            we       ,
     input  logic            re       ,
     output logic            wfull    ,
+    output logic            wafull   , // almost full
     output logic            rempty   ,
     input  logic [DW-1 : 0] d        ,
     output logic [DW-1 : 0] q         
@@ -20,8 +22,10 @@ timeunit 1ns;
 timeprecision 1ps;
 wire   EmptyN ;
 wire   FullN  ;
+wire  [AW:0]  WNum;
 assign wfull  = ~FullN ;
 assign rempty = ~EmptyN;
+assign wafull = WNum >= AFN;
 util_fifoa #(
     .AW ( AW ),
     .DW ( DW )
@@ -37,7 +41,7 @@ util_fifoa #(
     .RFullN(),
     .WData     ( d                   ),
     .RData     ( q                   ),
-    .WNum(),
+    .WNum      ( WNum                ),
     .RNum(),
     .TEST_MODE ( 1'b0                )
 );

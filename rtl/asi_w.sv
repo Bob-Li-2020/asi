@@ -357,6 +357,7 @@ afifo #(
     .we       ( aff_we       ),
     .re       ( aff_re       ),
     .wfull    ( aff_wfull    ),
+    .wafull   (              ),
     .rempty   ( aff_rempty   ),
     .d        ( aff_d        ),
     .q        ( aff_q        )
@@ -375,6 +376,7 @@ afifo #(
     .we       ( wff_we       ),
     .re       ( wff_re       ),
     .wfull    ( wff_wfull    ),
+    .wafull   (              ),
     .rempty   ( wff_rempty   ),
     .d        ( wff_d        ),
     .q        ( wff_q        )
@@ -393,6 +395,7 @@ afifo #(
     .we       ( bff_we       ),
     .re       ( bff_re       ),
     .wfull    ( bff_wfull    ),
+    .wafull   (              ),
     .rempty   ( bff_rempty   ),
     .d        ( bff_d        ),
     .q        ( bff_q        )
