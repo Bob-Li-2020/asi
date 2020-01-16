@@ -18,7 +18,7 @@
 // asi_r: Axi Slave Interface Read
 module asi_r //import asi_pkg::*;
 #(
-    //--- AXI BIT WIDTHs 
+    //--------- AXI PARAMETERS -------
     AXI_DW     = 128                 , // AXI DATA    BUS WIDTH
     AXI_AW     = 40                  , // AXI ADDRESS BUS WIDTH
     AXI_IW     = 8                   , // AXI ID TAG  BITS WIDTH
@@ -27,18 +27,18 @@ module asi_r //import asi_pkg::*;
     AXI_BURSTW = 2                   , // AXI AWBURST BITS WIDTH
     AXI_BRESPW = 2                   , // AXI BRESP   BITS WIDTH
     AXI_RRESPW = 2                   , // AXI RRESP   BITS WIDTH
-    //--- ASI SLAVE CONFIGURE
-    SLV_OD     = 4                   , // SLAVE OUTSTANDING DEPTH
-    SLV_RD     = 64                  , // SLAVE READ BUFFER DEPTH
-    SLV_WS     = 2                   , // SLAVE READ WAIT STATES CYCLE
-    SLV_WD     = 64                  , // SLAVE WRITE BUFFER DEPTH
-    SLV_BD     = 4                   , // SLAVE WRITE RESPONSE BUFFER DEPTH
-    SLV_ARB    = 0                   , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
-    //--- DERIVED PARAMETERS
-    AXI_WSTRBW = AXI_DW/8            , // AXI WSTRB BITS WIDTH
-    SLV_BITS   = AXI_DW              , 
-    SLV_BYTES  = SLV_BITS/8          ,
-    SLV_BYTEW  = $clog2(SLV_BYTES+1)  
+    //--------- ASI CONFIGURE --------
+    ASI_OD     = 4                   , // ASI OUTSTANDING DEPTH
+    ASI_RD     = 64                  , // ASI READ BUFFER DEPTH
+    ASI_WD     = 64                  , // ASI WRITE BUFFER DEPTH
+    ASI_BD     = 4                   , // ASI WRITE RESPONSE BUFFER DEPTH
+    ASI_ARB    = 0                   , // 1-GRANT READ WITH HIGHER PRIORITY; 0-GRANT WRITE WITH HIGHER PRIORITY
+    //--------- SLAVE ATTRIBUTES -----
+    SLV_WS     = 2                   , // SLAVE MODEL READ WAIT STATES CYCLE
+    //-------- DERIVED PARAMETERS ----
+    AXI_BYTES  = AXI_DW/8            , // BYTES NUMBER IN <AXI_DW>
+    AXI_WSTRBW = AXI_BYTES           , // AXI WSTRB BITS WIDTH
+    AXI_BYTESW = $clog2(AXI_BYTES+1)   
 )(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK          ,
@@ -88,8 +88,8 @@ timeprecision 1ps;
 //------------------------------------
 localparam AFF_DW = AXI_IW + AXI_AW + AXI_LW + AXI_SW + AXI_BURSTW,
            RFF_DW = AXI_IW + AXI_DW + AXI_RRESPW + 1;
-localparam OADDR_DEPTH = SLV_OD , // outstanding addresses buffer depth
-           RDATA_DEPTH = SLV_RD ; // read data buffer depth
+localparam OADDR_DEPTH = ASI_OD , // outstanding addresses buffer depth
+           RDATA_DEPTH = ASI_RD ; // read data buffer depth
 localparam [AXI_BURSTW-1 : 0] BT_FIXED     = AXI_BURSTW'(0);
 localparam [AXI_BURSTW-1 : 0] BT_INCR      = AXI_BURSTW'(1);
 localparam [AXI_BURSTW-1 : 0] BT_WRAP      = AXI_BURSTW'(2);
@@ -160,7 +160,7 @@ logic                    rq_last          ;
 //------------------------------------
 //------ AXI BURST ADDRESSES ---------
 //------------------------------------
-logic [SLV_BYTEW-1  : 0] burst_addr_inc   ;
+logic [AXI_BYTESW-1 : 0] burst_addr_inc   ;
 logic [AXI_AW-0     : 0] burst_addr_nxt   ;
 logic [AXI_AW-0     : 0] burst_addr_nxt_b ; // bounded to 4KB 
 logic [AXI_AW-1     : 0] burst_addr       ;
@@ -243,7 +243,7 @@ assign { rq_id, rq_data, rq_resp, rq_last } = rff_q;
 //------------------------------------
 //------ TRANSFER SIZE ERROR ---------
 //------------------------------------
-assign trsize_err       = m_rsize > (AXI_SW'(SLV_BYTEW-1)); 
+assign trsize_err       = m_rsize > (AXI_SW'($clog2(AXI_BYTES)));
 //------------------------------------
 //------ READ RESPONSE VALUE ---------
 //------------------------------------
@@ -251,14 +251,14 @@ assign m_rresp          = { trsize_err, 1'b0 };
 //------------------------------------
 //------ ADDRESS CALCULATION ---------
 //------------------------------------
-assign burst_addr_inc   = m_rburst==BT_FIXED ? '0 : (SLV_BYTEW'(1))<<m_rsize;
+assign burst_addr_inc   = m_rburst==BT_FIXED ? '0 : (AXI_BYTESW'(1))<<m_rsize;
 assign burst_addr_nxt   = st_cur==BP_FIRST ? (burst_addr_inc+aligned_addr) : (st_cur==BP_BURST ? (~rff_wafull ? burst_addr_inc+burst_addr : burst_addr) : 'x);
 assign burst_addr_nxt_b = burst_addr_nxt[12]==start_addr[12] ? burst_addr_nxt : (st_cur==BP_FIRST ? aligned_addr : st_cur==BP_BURST ? burst_addr : 'x);
 assign start_addr       = st_cur==BP_FIRST ? aq_addr : aq_addr_latch;
 assign aligned_addr     = start_addr_mask & start_addr;
 always_comb begin
-    start_addr_mask = ('1)<<(SLV_BYTEW-1);
-	for(int i=0;i<SLV_BYTEW;i++) begin
+    start_addr_mask = ('1)<<($clog2(AXI_BYTES)); // default align with AXI_DATA_BUS_BYTES
+	for(int i=0;i<=($clog2(AXI_BYTES));i++) begin
 		if(i==m_rsize) begin
             start_addr_mask = ('1)<<i;
 		end

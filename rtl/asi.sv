@@ -18,7 +18,7 @@
 // asi: Axi Slave Interface
 module asi //import asi_pkg::*;
 #(
-    //--- AXI BIT WIDTHs 
+    //--------- AXI PARAMETERS -------
     AXI_DW     = 128                 , // AXI DATA    BUS WIDTH
     AXI_AW     = 40                  , // AXI ADDRESS BUS WIDTH
     AXI_IW     = 8                   , // AXI ID TAG  BITS WIDTH
@@ -27,18 +27,18 @@ module asi //import asi_pkg::*;
     AXI_BURSTW = 2                   , // AXI AWBURST BITS WIDTH
     AXI_BRESPW = 2                   , // AXI BRESP   BITS WIDTH
     AXI_RRESPW = 2                   , // AXI RRESP   BITS WIDTH
-    //--- ASI SLAVE CONFIGURE
-    SLV_OD     = 4                   , // SLAVE OUTSTANDING DEPTH
-    SLV_RD     = 64                  , // SLAVE READ BUFFER DEPTH
-    SLV_WS     = 2                   , // SLAVE READ WAIT STATES CYCLE
-    SLV_WD     = 64                  , // SLAVE WRITE BUFFER DEPTH
-    SLV_BD     = 4                   , // SLAVE WRITE RESPONSE BUFFER DEPTH
-    SLV_ARB    = 0                   , // 1-GRANT READ HIGHER PRIORITY; 0-GRANT WRITE HIGHER PRIORITY
-    //--- DERIVED PARAMETERS
-    AXI_WSTRBW = AXI_DW/8            , // AXI WSTRB BITS WIDTH
-    SLV_BITS   = AXI_DW              , 
-    SLV_BYTES  = SLV_BITS/8          ,
-    SLV_BYTEW  = $clog2(SLV_BYTES+1)  
+    //--------- ASI CONFIGURE --------
+    ASI_OD     = 4                   , // ASI OUTSTANDING DEPTH
+    ASI_RD     = 64                  , // ASI READ BUFFER DEPTH
+    ASI_WD     = 64                  , // ASI WRITE BUFFER DEPTH
+    ASI_BD     = 4                   , // ASI WRITE RESPONSE BUFFER DEPTH
+    ASI_ARB    = 0                   , // 1-GRANT READ WITH HIGHER PRIORITY; 0-GRANT WRITE WITH HIGHER PRIORITY
+    //--------- SLAVE ATTRIBUTES -----
+    SLV_WS     = 2                   , // SLAVE MODEL READ WAIT STATES CYCLE
+    //-------- DERIVED PARAMETERS ----
+    AXI_BYTES  = AXI_DW/8            , // BYTES NUMBER IN <AXI_DW>
+    AXI_WSTRBW = AXI_BYTES           , // AXI WSTRB BITS WIDTH
+    AXI_BYTESW = $clog2(AXI_BYTES+1)   
 )(
     //---- AXI GLOBAL SIGNALS -------------------
     input  logic                    ACLK        ,
@@ -195,9 +195,9 @@ always_comb begin
     case(st_cur)
         ARB_IDLE: begin
             st_nxt = st_cur;
-            if(arff_v & (~awff_v | SLV_ARB))
+            if(arff_v & (~awff_v | ASI_ARB))
                 st_nxt = ARB_READ;
-            if(awff_v & (~arff_v | ~SLV_ARB))
+            if(awff_v & (~arff_v | ~ASI_ARB))
                 st_nxt = ARB_WRITE;
         end
         ARB_READ: st_nxt = rlast ? (awff_v ? ARB_WRITE : ARB_IDLE) : st_cur;
@@ -210,53 +210,53 @@ end
 //------ asi_w/r INSTANCES -----------
 //------------------------------------
 asi_w #(
-    //--- AXI BIT WIDTHs
-    .AXI_DW     ( AXI_DW     ),
-    .AXI_AW     ( AXI_AW     ),
-    .AXI_IW     ( AXI_IW     ),
-    .AXI_LW     ( AXI_LW     ),
-    .AXI_SW     ( AXI_SW     ),
-    .AXI_BURSTW ( AXI_BURSTW ),
-    .AXI_BRESPW ( AXI_BRESPW ),
-    .AXI_RRESPW ( AXI_RRESPW ),
-    //--- ASI SLAVE CONFIGURE
-    .SLV_OD     ( SLV_OD     ),
-    .SLV_RD     ( SLV_RD     ),
-    .SLV_WS     ( SLV_WS     ),
-    .SLV_WD     ( SLV_WD     ),
-    .SLV_BD     ( SLV_BD     ),
-    .SLV_ARB    ( SLV_ARB    ),
-    //--- DERIVED PARAMETERS
-    .AXI_WSTRBW ( AXI_WSTRBW ),
-    .SLV_BITS   ( SLV_BITS   ),
-    .SLV_BYTES  ( SLV_BYTES  ),
-    .SLV_BYTEW  ( SLV_BYTEW  )
+//--------- AXI PARAMETERS -------
+.AXI_DW     ( AXI_DW     ),
+.AXI_AW     ( AXI_AW     ),
+.AXI_IW     ( AXI_IW     ),
+.AXI_LW     ( AXI_LW     ),
+.AXI_SW     ( AXI_SW     ),
+.AXI_BURSTW ( AXI_BURSTW ),
+.AXI_BRESPW ( AXI_BRESPW ),
+.AXI_RRESPW ( AXI_RRESPW ),
+//--------- ASI CONFIGURE --------
+.ASI_OD     ( ASI_OD     ),
+.ASI_RD     ( ASI_RD     ),
+.ASI_WD     ( ASI_WD     ),
+.ASI_BD     ( ASI_BD     ),
+.ASI_ARB    ( ASI_ARB    ),
+//--------- SLAVE ATTRIBUTES -----
+.SLV_WS     ( SLV_WS     ),
+//-------- DERIVED PARAMETERS ----
+.AXI_BYTES  ( AXI_BYTES  ),
+.AXI_WSTRBW ( AXI_WSTRBW ),
+.AXI_BYTESW ( AXI_BYTESW )
 ) w_inf ( 
     .*
 );
 
 asi_r #(
-    //--- AXI BIT WIDTHs
-    .AXI_DW     ( AXI_DW     ),
-    .AXI_AW     ( AXI_AW     ),
-    .AXI_IW     ( AXI_IW     ),
-    .AXI_LW     ( AXI_LW     ),
-    .AXI_SW     ( AXI_SW     ),
-    .AXI_BURSTW ( AXI_BURSTW ),
-    .AXI_BRESPW ( AXI_BRESPW ),
-    .AXI_RRESPW ( AXI_RRESPW ),
-    //--- ASI SLAVE CONFIGURE
-    .SLV_OD     ( SLV_OD     ),
-    .SLV_RD     ( SLV_RD     ),
-    .SLV_WS     ( SLV_WS     ),
-    .SLV_WD     ( SLV_WD     ),
-    .SLV_BD     ( SLV_BD     ),
-    .SLV_ARB    ( SLV_ARB    ),
-    //--- DERIVED PARAMETERS
-    .AXI_WSTRBW ( AXI_WSTRBW ),
-    .SLV_BITS   ( SLV_BITS   ),
-    .SLV_BYTES  ( SLV_BYTES  ),
-    .SLV_BYTEW  ( SLV_BYTEW  )
+//--------- AXI PARAMETERS -------
+.AXI_DW     ( AXI_DW     ),
+.AXI_AW     ( AXI_AW     ),
+.AXI_IW     ( AXI_IW     ),
+.AXI_LW     ( AXI_LW     ),
+.AXI_SW     ( AXI_SW     ),
+.AXI_BURSTW ( AXI_BURSTW ),
+.AXI_BRESPW ( AXI_BRESPW ),
+.AXI_RRESPW ( AXI_RRESPW ),
+//--------- ASI CONFIGURE --------
+.ASI_OD     ( ASI_OD     ),
+.ASI_RD     ( ASI_RD     ),
+.ASI_WD     ( ASI_WD     ),
+.ASI_BD     ( ASI_BD     ),
+.ASI_ARB    ( ASI_ARB    ),
+//--------- SLAVE ATTRIBUTES -----
+.SLV_WS     ( SLV_WS     ),
+//-------- DERIVED PARAMETERS ----
+.AXI_BYTES  ( AXI_BYTES  ),
+.AXI_WSTRBW ( AXI_WSTRBW ),
+.AXI_BYTESW ( AXI_BYTESW )
 ) r_inf ( 
     .*
 );
