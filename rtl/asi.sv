@@ -195,9 +195,9 @@ always_comb begin
     case(st_cur)
         ARB_IDLE: begin
             st_nxt = st_cur;
-            if(arff_v & (~awff_v | ASI_ARB))
+            if(arff_v & (!awff_v | ASI_ARB))
                 st_nxt = ARB_READ;
-            if(awff_v & (~arff_v | ~ASI_ARB))
+            if(awff_v & (!arff_v | !ASI_ARB))
                 st_nxt = ARB_WRITE;
         end
         ARB_READ: st_nxt = rlast ? (awff_v ? ARB_WRITE : ARB_IDLE) : st_cur;

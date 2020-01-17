@@ -207,7 +207,7 @@ assign m_rlen           = st_cur==BP_FIRST ? aq_len   : aq_len_latch;
 assign m_rsize          = st_cur==BP_FIRST ? aq_size  : aq_size_latch;
 assign m_rburst         = st_cur==BP_FIRST ? aq_burst : aq_burst_latch;
 assign m_raddr          = st_cur==BP_FIRST ? start_addr : burst_addr;
-assign m_re             = aff_re || st_cur==BP_BURST && (~rff_wafull);
+assign m_re             = aff_re || st_cur==BP_BURST && (!rff_wafull);
 assign m_rlast          = burst_last       ;
 assign m_rbusy          = m_re             ;
 assign m_arff_rvalid    = aff_rvalid       ;
@@ -217,7 +217,7 @@ assign error_w4KB       = burst_addr_nxt[12]!=start_addr[12] && st_cur==BP_BURST
 //------------------------------------
 assign clk              = usr_clk          ;
 assign rst_n            = usr_reset_n      ;
-assign aff_rvalid       = ~aff_rempty && st_cur==BP_FIRST;
+assign aff_rvalid       = !aff_rempty && st_cur==BP_FIRST;
 //------------------------------------
 //------ AR CHANNEL FIFO ASSIGN ------
 //------------------------------------
@@ -226,7 +226,7 @@ assign aff_rreset_n     = usr_reset_n      ;
 assign aff_wclk         = ACLK             ;
 assign aff_rclk         = usr_clk          ;
 assign aff_we           = ARVALID & ARREADY;
-assign aff_re           = aff_rvalid & (~rff_wafull) & rgranted;
+assign aff_re           = aff_rvalid & (!rff_wafull) & rgranted;
 assign aff_d            = { ARID, ARADDR, ARLEN, ARSIZE, ARBURST };
 assign { aq_id, aq_addr, aq_len, aq_size, aq_burst } = aff_q;
 //------------------------------------
@@ -252,7 +252,7 @@ assign m_rresp          = { trsize_err, 1'b0 };
 //------ ADDRESS CALCULATION ---------
 //------------------------------------
 assign burst_addr_inc   = m_rburst==BT_FIXED ? '0 : (AXI_BYTESW'(1))<<m_rsize;
-assign burst_addr_nxt   = st_cur==BP_FIRST ? (burst_addr_inc+aligned_addr) : (st_cur==BP_BURST ? (~rff_wafull ? burst_addr_inc+burst_addr : burst_addr) : 'x);
+assign burst_addr_nxt   = st_cur==BP_FIRST ? (burst_addr_inc+aligned_addr) : (st_cur==BP_BURST ? (!rff_wafull ? burst_addr_inc+burst_addr : burst_addr) : 'x);
 assign burst_addr_nxt_b = burst_addr_nxt[12]==start_addr[12] ? burst_addr_nxt : (st_cur==BP_FIRST ? aligned_addr : st_cur==BP_BURST ? burst_addr : 'x);
 assign start_addr       = st_cur==BP_FIRST ? aq_addr : aq_addr_latch;
 assign aligned_addr     = start_addr_mask & start_addr;
@@ -267,7 +267,7 @@ end
 //------------------------------------
 //------ STATE MACHINES CONTROL ------
 //------------------------------------
-assign burst_last = (m_re && aq_len=='0 && st_cur==BP_FIRST) || (burst_cc==aq_len_latch && (~rff_wafull) && st_cur==BP_BURST);
+assign burst_last = (m_re && aq_len=='0 && st_cur==BP_FIRST) || (burst_cc==aq_len_latch && (!rff_wafull) && st_cur==BP_BURST);
 always_ff @(posedge clk or negedge rst_n) begin 
     if(!rst_n) 
         st_cur <= BP_IDLE; 

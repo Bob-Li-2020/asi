@@ -228,16 +228,16 @@ assign m_wstrb          = wff_re ? wq_strb : '0;
 assign m_wlast          = wff_re ? wq_last : '0; 
 assign m_we             = wff_re             ;
 assign m_wbusy          = aff_re | st_cur==BP_BURST;
-assign m_awff_rvalid    = ~aff_rempty && st_cur==BP_FIRST; 
+assign m_awff_rvalid    = !aff_rempty && st_cur==BP_FIRST; 
 assign error_w4KB       = burst_addr_nxt[12]!=start_addr[12] && st_cur==BP_BURST;
 //------------------------------------
 //------ EASY ASSIGNMENTS ------------
 //------------------------------------
 assign clk              = usr_clk            ;
 assign rst_n            = usr_reset_n        ;
-assign aff_rvalid       = ~aff_rempty & ~wff_rempty && st_cur==BP_FIRST; // awfifo read may only occur in state <BP_FIRST>
-assign wff_rvalid       = ~aff_rempty & ~wff_rempty && st_cur==BP_FIRST || ~wff_rempty && st_cur==BP_BURST; 
-assign bff_rvalid       = ~bff_rempty        ;
+assign aff_rvalid       = !aff_rempty & !wff_rempty && st_cur==BP_FIRST; // awfifo read may only occur in state <BP_FIRST>
+assign wff_rvalid       = !aff_rempty & !wff_rempty && st_cur==BP_FIRST || !wff_rempty && st_cur==BP_BURST; 
+assign bff_rvalid       = !bff_rempty        ;
 //------------------------------------
 //------ AW CHANNEL FIFO ASSIGN ------
 //------------------------------------
@@ -267,7 +267,7 @@ assign bff_wreset_n     = usr_reset_n        ;
 assign bff_rreset_n     = ARESETn            ;
 assign bff_wclk         = usr_clk            ;
 assign bff_rclk         = ACLK               ;
-assign bff_we           = ~bff_wfull && (burst_last || st_cur==BP_BRESP);
+assign bff_we           = !bff_wfull && (burst_last || st_cur==BP_BRESP);
 assign bff_re           = bff_rvalid & BREADY;
 assign bff_d            = {m_wid, m_bresp}   ;
 assign { bq_bid, bq_bresp } = bff_q          ;
@@ -310,8 +310,8 @@ end
 always_comb begin
     case(st_cur)
         BP_FIRST: st_nxt = aff_re && aq_len ? BP_BURST : st_cur; // if burst length is 1, won't jump to <BP_BURST>
-        BP_BURST: st_nxt = burst_last ? (~bff_wfull ? BP_FIRST : BP_BRESP) : st_cur;
-        BP_BRESP: st_nxt = ~bff_wfull ? BP_FIRST : st_cur;
+        BP_BURST: st_nxt = burst_last ? (!bff_wfull ? BP_FIRST : BP_BRESP) : st_cur;
+        BP_BRESP: st_nxt = !bff_wfull ? BP_FIRST : st_cur;
         BP_IDLE : st_nxt = BP_FIRST;
         default : st_nxt = BP_IDLE;
     endcase
@@ -327,8 +327,8 @@ always_ff @(posedge clk or negedge rst_n) begin
         burst_addr <= st_nxt==BP_BURST ? burst_addr_nxt_b[0 +: AXI_AW] : 'x;
     end
     else if(st_cur==BP_BURST) begin
-        burst_cc   <= ~wff_rempty ? burst_cc+1'b1 : burst_cc;
-        burst_addr <= ~wff_rempty ? burst_addr_nxt_b[0 +: AXI_AW] : burst_addr;
+        burst_cc   <= !wff_rempty ? burst_cc+1'b1 : burst_cc;
+        burst_addr <= !wff_rempty ? burst_addr_nxt_b[0 +: AXI_AW] : burst_addr;
     end
 end
 //------------------------------------
