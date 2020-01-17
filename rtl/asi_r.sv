@@ -34,7 +34,7 @@ module asi_r //import asi_pkg::*;
     ASI_BD     = 4                   , // ASI WRITE RESPONSE BUFFER DEPTH
     ASI_ARB    = 0                   , // 1-GRANT READ WITH HIGHER PRIORITY; 0-GRANT WRITE WITH HIGHER PRIORITY
     //--------- SLAVE ATTRIBUTES -----
-    SLV_WS     = 2                   , // SLAVE MODEL READ WAIT STATES CYCLE
+    SLV_WS     = 1                   , // SLAVE MODEL READ WAIT STATES CYCLE
     //-------- DERIVED PARAMETERS ----
     AXI_BYTES  = AXI_DW/8            , // BYTES NUMBER IN <AXI_DW>
     AXI_WSTRBW = AXI_BYTES           , // AXI WSTRB BITS WIDTH
