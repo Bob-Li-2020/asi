@@ -88,27 +88,38 @@ module asi //import asi_pkg::*;
     //---- USER LOGIC SIGNALS -------------------
     input  logic                    usr_clk     ,
     input  logic                    usr_reset_n ,
-    //ADDRESS
-    output logic [AXI_AW-1     : 0] m_addr      ,
+    //ADDRESS & ENABLE
+    output logic [AXI_AW-1     : 0] usr_a       , // address
+    output logic                    usr_ce      , // clock enable. Active-High
     //W CHANNEL
-    output logic [AXI_DW-1     : 0] m_wdata     ,
-    output logic [AXI_WSTRBW-1 : 0] m_wstrb     ,
-    output logic                    m_we        ,
+    output logic [AXI_DW-1     : 0] usr_d       , // data
+    output logic [AXI_WSTRBW-1 : 0] usr_we      , // write enable. Active-High
     //R CHANNEL
-    input  logic [AXI_DW-1     : 0] m_rdata     ,
-    output logic                    m_re          // asi read request("m_raddr" valid)
+    input  logic [AXI_DW-1     : 0] usr_q         // Q
 );
 timeunit 1ns;
 timeprecision 1ps;
 typedef enum logic [1:0] {ARB_IDLE=2'b00, ARB_READ, ARB_WRITE } TYPE_ARB;
 typedef enum logic { RGNT=1'b0, WGNT } TYPE_GNT;
 //------------------------------------
+//------ r_inf/w_inf SIGNALS ---------
+//------------------------------------
+//ADDRESS
+logic [AXI_AW-1     : 0] m_addr        ;
+//W CHANNEL
+logic [AXI_DW-1     : 0] m_wdata       ;
+logic [AXI_WSTRBW-1 : 0] m_wstrb       ;
+logic                    m_we          ;
+//R CHANNEL
+logic [AXI_DW-1     : 0] m_rdata       ;
+logic                    m_re          ; // asi read request("m_raddr" valid)
+//------------------------------------
 //------ EASY SIGNALS ----------------
 //------------------------------------
-wire                     rlast         ;
-wire                     wlast         ;
-wire                     arff_v        ;
-wire                     awff_v        ;
+logic                    rlast         ;
+logic                    wlast         ;
+logic                    arff_v        ;
+logic                    awff_v        ;
 //------------------------------------
 //------ asi SIGNALS -----------------
 //------------------------------------
@@ -166,6 +177,17 @@ generate
             {m_rvalid, m_re_ff} <= {m_re_ff, m_re};
     end: WS_N
 endgenerate
+//------------------------------------
+//---- TOP PORTS ASSIGN --------------
+//------------------------------------
+//ADDRESS & ENABLE
+assign usr_a     = m_addr           ; // address
+assign usr_ce    = m_we | m_re      ; // clock enable
+//W CHANNEL
+assign usr_d     = m_wdata          ; // data
+assign usr_we    = m_wstrb & {AXI_WSTRBW{m_we}}; // write enable
+//R CHANNEL
+assign m_rdata   = usr_q            ; // Q
 //------------------------------------
 //------ slave error flag assign -----
 //------------------------------------
