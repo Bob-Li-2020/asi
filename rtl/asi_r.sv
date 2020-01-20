@@ -72,13 +72,11 @@ module asi_r //import asi_pkg::*;
     output logic                    m_rlast       ,
     input  logic [AXI_DW-1     : 0] m_rdata       ,
     input  logic                    m_rvalid      ,
-    input  logic                    m_rslverr     ,
     //ARBITER SIGNALS
-    output logic                    m_rbusy       ,
     output logic                    m_arff_rvalid ,
-    input  logic                    rgranted      ,
+    input  logic                    m_rgranted    ,
     //ERROR FLAGS
-    output logic                    error_r4KB     
+    input  logic                    m_rsize_error   // unsupported transfer size
 );
 
 timeunit 1ns;
@@ -209,7 +207,6 @@ assign m_rburst         = st_cur==BP_FIRST ? aq_burst : aq_burst_latch;
 assign m_raddr          = st_cur==BP_FIRST ? start_addr : burst_addr;
 assign m_re             = aff_re || st_cur==BP_BURST && (!rff_wafull);
 assign m_rlast          = burst_last       ;
-assign m_rbusy          = m_re             ;
 assign m_arff_rvalid    = aff_rvalid       ;
 assign error_w4KB       = burst_addr_nxt[12]!=start_addr[12] && st_cur==BP_BURST;
 //------------------------------------
@@ -226,7 +223,7 @@ assign aff_rreset_n     = usr_reset_n      ;
 assign aff_wclk         = ACLK             ;
 assign aff_rclk         = usr_clk          ;
 assign aff_we           = ARVALID & ARREADY;
-assign aff_re           = aff_rvalid & (!rff_wafull) & rgranted;
+assign aff_re           = aff_rvalid & (!rff_wafull) & m_rgranted;
 assign aff_d            = { ARID, ARADDR, ARLEN, ARSIZE, ARBURST };
 assign { aq_id, aq_addr, aq_len, aq_size, aq_burst } = aff_q;
 //------------------------------------
@@ -243,7 +240,7 @@ assign { rq_id, rq_data, rq_resp, rq_last } = rff_q;
 //------------------------------------
 //------ TRANSFER SIZE ERROR ---------
 //------------------------------------
-assign trsize_err       = m_rsize > (AXI_SW'($clog2(AXI_BYTES)));
+assign trsize_err       = (m_rsize > (AXI_SW'($clog2(AXI_BYTES)))) | m_rsize_error;
 //------------------------------------
 //------ READ RESPONSE VALUE ---------
 //------------------------------------

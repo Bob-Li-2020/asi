@@ -41,61 +41,66 @@ module asi //import asi_pkg::*;
     AXI_BYTESW = $clog2(AXI_BYTES+1)   
 )(
     //---- AXI GLOBAL SIGNALS -------------------
-    input  logic                    ACLK        ,
-    input  logic                    ARESETn     ,
+    input  logic                    ACLK            ,
+    input  logic                    ARESETn         ,
     //---- AXI ADDRESS WRITE SIGNALS ------------
-    input  logic [AXI_IW-1     : 0] AWID        ,
-    input  logic [AXI_AW-1     : 0] AWADDR      ,
-    input  logic [AXI_LW-1     : 0] AWLEN       ,
-    input  logic [AXI_SW-1     : 0] AWSIZE      ,
-    input  logic [AXI_BURSTW-1 : 0] AWBURST     ,
-    input  logic                    AWVALID     ,
-    output logic                    AWREADY     ,
-    input  logic [3            : 0] AWCACHE     , // NO LOADS
-    input  logic [2            : 0] AWPROT      , // NO LOADS
-    input  logic [3            : 0] AWQOS       , // NO LOADS
-    input  logic [3            : 0] AWREGION    , // NO LOADS
+    input  logic [AXI_IW-1     : 0] AWID            ,
+    input  logic [AXI_AW-1     : 0] AWADDR          ,
+    input  logic [AXI_LW-1     : 0] AWLEN           ,
+    input  logic [AXI_SW-1     : 0] AWSIZE          ,
+    input  logic [AXI_BURSTW-1 : 0] AWBURST         ,
+    input  logic                    AWVALID         ,
+    output logic                    AWREADY         ,
+    input  logic [3            : 0] AWCACHE         , // NO LOADS
+    input  logic [2            : 0] AWPROT          , // NO LOADS
+    input  logic [3            : 0] AWQOS           , // NO LOADS
+    input  logic [3            : 0] AWREGION        , // NO LOADS
     //---- AXI DATA WRITE SIGNALS ---------------
-    input  logic [AXI_DW-1     : 0] WDATA       ,
-    input  logic [AXI_WSTRBW-1 : 0] WSTRB       ,
-    input  logic                    WLAST       ,
-    input  logic                    WVALID      ,
-    output logic                    WREADY      ,
+    input  logic [AXI_DW-1     : 0] WDATA           ,
+    input  logic [AXI_WSTRBW-1 : 0] WSTRB           ,
+    input  logic                    WLAST           ,
+    input  logic                    WVALID          ,
+    output logic                    WREADY          ,
     //---- AXI WRITE RESPONSE SIGNALS -----------
-    output logic [AXI_IW-1     : 0] BID         ,
-    output logic [AXI_BRESPW-1 : 0] BRESP       ,
-    output logic                    BVALID      ,
-    input  logic                    BREADY      ,
+    output logic [AXI_IW-1     : 0] BID             ,
+    output logic [AXI_BRESPW-1 : 0] BRESP           ,
+    output logic                    BVALID          ,
+    input  logic                    BREADY          ,
     //---- READ ADDRESS CHANNEL -----------------
-    input  logic [AXI_IW-1     : 0] ARID        ,
-    input  logic [AXI_AW-1     : 0] ARADDR      ,
-    input  logic [AXI_LW-1     : 0] ARLEN       ,
-    input  logic [AXI_SW-1     : 0] ARSIZE      ,
-    input  logic [AXI_BURSTW-1 : 0] ARBURST     ,
-    input  logic                    ARVALID     ,
-    output logic                    ARREADY     ,
-    input  logic [3            : 0] ARCACHE     , // NO LOADS 
-    input  logic [2            : 0] ARPROT      , // NO LOADS 
-    input  logic [3            : 0] ARQOS       , // NO LOADS 
-    input  logic [3            : 0] ARREGION    , // NO LOADS
+    input  logic [AXI_IW-1     : 0] ARID            ,
+    input  logic [AXI_AW-1     : 0] ARADDR          ,
+    input  logic [AXI_LW-1     : 0] ARLEN           ,
+    input  logic [AXI_SW-1     : 0] ARSIZE          ,
+    input  logic [AXI_BURSTW-1 : 0] ARBURST         ,
+    input  logic                    ARVALID         ,
+    output logic                    ARREADY         ,
+    input  logic [3            : 0] ARCACHE         , // NO LOADS 
+    input  logic [2            : 0] ARPROT          , // NO LOADS 
+    input  logic [3            : 0] ARQOS           , // NO LOADS 
+    input  logic [3            : 0] ARREGION        , // NO LOADS
     //---- READ DATA CHANNEL --------------------
-    output logic [AXI_IW-1     : 0] RID         ,
-    output logic [AXI_DW-1     : 0] RDATA       ,
-    output logic [AXI_RRESPW-1 : 0] RRESP       ,
-    output logic                    RLAST       ,
-    output logic                    RVALID      ,
-    input  logic                    RREADY      ,
+    output logic [AXI_IW-1     : 0] RID             ,
+    output logic [AXI_DW-1     : 0] RDATA           ,
+    output logic [AXI_RRESPW-1 : 0] RRESP           ,
+    output logic                    RLAST           ,
+    output logic                    RVALID          ,
+    input  logic                    RREADY          ,
     //---- USER LOGIC SIGNALS -------------------
-    input  logic                    usr_clk     ,
-    input  logic                    usr_reset_n ,
+    input  logic                    usr_clk         ,
+    input  logic                    usr_reset_n     ,
     //ADDRESS & ENABLE
-    output logic [AXI_AW-1     : 0] usr_a       , // address
-    output logic                    usr_ce      , // clock enable. Active-High
+    output logic [AXI_AW-1     : 0] usr_a           , // address
+    output logic                    usr_ce          , // clock enable. Active-High
     //W CHANNEL
-    output logic [AXI_DW-1     : 0] usr_d       , // data
-    output logic [AXI_WSTRBW-1 : 0] usr_we      , // write enable. Active-High
+    output logic [AXI_DW-1     : 0] usr_d           , // data
+    output logic [AXI_WSTRBW-1 : 0] usr_we          , // write enable. Active-High
     //R CHANNEL
-    input  logic [AXI_DW-1     : 0] usr_q         // Q
+    input  logic [AXI_DW-1     : 0] usr_q           , // Q
+    //extra signals
+    output logic [AXI_SW-1     : 0] usr_wsize       ,
+    output logic [AXI_SW-1     : 0] usr_rsize       ,
+    input  logic                    usr_wsize_error ,
+    input  logic                    usr_rsize_error  
 );
 timeunit 1ns;
 timeprecision 1ps;
@@ -123,13 +128,14 @@ logic                    awff_v        ;
 //------------------------------------
 //------ asi SIGNALS -----------------
 //------------------------------------
-logic                    m_rlast       ; // asi read request last cycle
-logic                    m_rvalid      ; // rdata valid("m_rdata" valid)
-logic                    m_rslverr     ; // slave device error flag
+//ARBITER SIGNALS
 logic                    m_arff_rvalid ; // (AR FIFO NOT EMPTY) && (BP_st_cur==BP_FIRST)
 logic                    m_awff_rvalid ; // (AW FIFO NOT EMPTY) && (BP_st_cur==BP_FIRST)
-logic                    rgranted      ;
-logic                    wgranted      ;
+logic                    m_rgranted    ;
+logic                    m_wgranted    ;
+//ERROR FLAGS
+logic                    m_wsize_error ; // unsupported transfer size
+logic                    m_rsize_error ; // unsupported transfer size
 //AW CHANNEL
 logic [AXI_IW-1     : 0] m_wid         ;
 logic [AXI_LW-1     : 0] m_wlen        ;
@@ -142,19 +148,12 @@ logic [AXI_IW-1     : 0] m_rid         ;
 logic [AXI_LW-1     : 0] m_rlen        ;
 logic [AXI_SW-1     : 0] m_rsize       ;
 logic [AXI_BURSTW-1 : 0] m_rburst      ;
+//R CHANNEL
+logic                    m_rlast       ; // asi read request last cycle
+logic                    m_rvalid      ; // rdata valid("m_rdata" valid)
 //ADDRESSES
 logic [AXI_AW-1     : 0] m_waddr       ;
 logic [AXI_AW-1     : 0] m_raddr       ;
-//------------------------------------
-//------ asi SIGNALS-busy ------------
-//------------------------------------
-logic                    m_wbusy       ;
-logic                    m_rbusy       ;
-//------------------------------------
-//------ asi SIGNALS-busy ------------
-//------------------------------------
-logic                    error_w4KB    ;
-logic                    error_r4KB    ;
 //------------------------------------
 //------ ARBITER STATE MACHINE -------
 //------------------------------------
@@ -181,30 +180,31 @@ endgenerate
 //---- TOP PORTS ASSIGN --------------
 //------------------------------------
 //ADDRESS & ENABLE
-assign usr_a     = m_addr           ; // address
-assign usr_ce    = m_we | m_re      ; // clock enable
+assign usr_a         = m_addr           ; // address
+assign usr_ce        = m_we | m_re      ; // clock enable
 //W CHANNEL
-assign usr_d     = m_wdata          ; // data
-assign usr_we    = m_wstrb & {AXI_WSTRBW{m_we}}; // write enable
+assign usr_d         = m_wdata          ; // data
+assign usr_we        = m_wstrb & {AXI_WSTRBW{m_we}}; // write enable
 //R CHANNEL
-assign m_rdata   = usr_q            ; // Q
-//------------------------------------
-//------ slave error flag assign -----
-//------------------------------------
-assign m_rslverr = 1'b0             ; // TODO: register address space ONLY accepts 32-bit transfer size. assert this flag if not.
+assign m_rdata       = usr_q            ; // Q
+//extra signals
+assign usr_wsize     = m_wsize          ;
+assign usr_rsize     = m_rsize          ;
+assign m_wsize_error = usr_wsize_error  ;
+assign m_rsize_error = usr_rsize_error  ;
 //------------------------------------
 //------ EASY SIGNALS ASSIGN ---------
 //------------------------------------
-assign rlast     = m_rlast          ;
-assign wlast     = m_wlast          ;
-assign arff_v    = m_arff_rvalid    ;
-assign awff_v    = m_awff_rvalid    ;
+assign rlast         = m_rlast          ;
+assign wlast         = m_wlast          ;
+assign arff_v        = m_arff_rvalid    ;
+assign awff_v        = m_awff_rvalid    ;
 //------------------------------------
 //------ ARBITER STATE MACHINE -------
 //------------------------------------
-assign m_addr    = m_we ? m_waddr : m_raddr;
-assign rgranted  = st_cur==ARB_READ ; 
-assign wgranted  = st_cur==ARB_WRITE;
+assign m_addr        = m_we ? m_waddr : m_raddr;
+assign m_rgranted    = st_cur==ARB_READ ; 
+assign m_wgranted    = st_cur==ARB_WRITE;
 always_ff @(posedge usr_clk or negedge usr_reset_n) begin
     if(!usr_reset_n) begin
         st_cur <= ARB_IDLE;

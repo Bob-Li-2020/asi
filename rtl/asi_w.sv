@@ -77,11 +77,10 @@ module asi_w //import asi_pkg::*;
     output logic                    m_wlast       ,
     output logic                    m_we          ,
     //ARBITER SIGNALS
-    output logic                    m_wbusy       ,
     output logic                    m_awff_rvalid ,
-    input  logic                    wgranted      ,
+    input  logic                    m_wgranted    ,
     //ERROR FLAGS
-    output logic                    error_w4KB     
+    input  logic                    m_wsize_error   // unsupported transfer size
 );
 timeunit 1ns;
 timeprecision 1ps;
@@ -193,6 +192,10 @@ logic [AXI_AW-1     : 0] start_addr       ;
 logic [AXI_AW-1     : 0] start_addr_mask  ;
 logic [AXI_AW-1     : 0] aligned_addr     ;
 //------------------------------------
+//------------ 4KB ERROR -------------
+//------------------------------------
+logic                    error_w4KB       ;
+//------------------------------------
 //------ TRANSFER SIZE ERROR ---------
 //------------------------------------
 logic                    trsize_err       ;
@@ -227,7 +230,6 @@ assign m_wdata          = wq_data            ;
 assign m_wstrb          = wff_re ? wq_strb : '0;
 assign m_wlast          = wff_re ? wq_last : '0; 
 assign m_we             = wff_re             ;
-assign m_wbusy          = aff_re | st_cur==BP_BURST;
 assign m_awff_rvalid    = !aff_rempty && st_cur==BP_FIRST; 
 assign error_w4KB       = burst_addr_nxt[12]!=start_addr[12] && st_cur==BP_BURST;
 //------------------------------------
@@ -246,7 +248,7 @@ assign aff_rreset_n     = usr_reset_n        ;
 assign aff_wclk         = ACLK               ;
 assign aff_rclk         = usr_clk            ;
 assign aff_we           = AWVALID & AWREADY  ;
-assign aff_re           = aff_rvalid & wgranted; 
+assign aff_re           = aff_rvalid & m_wgranted; 
 assign aff_d            = { AWID, AWADDR, AWLEN, AWSIZE, AWBURST };
 assign { aq_id, aq_addr, aq_len, aq_size, aq_burst } = aff_q;
 //------------------------------------
@@ -257,7 +259,7 @@ assign wff_rreset_n     = usr_reset_n        ;
 assign wff_wclk         = ACLK               ;
 assign wff_rclk         = usr_clk            ;
 assign wff_we           = WVALID & WREADY    ;
-assign wff_re           = wff_rvalid & wgranted;
+assign wff_re           = wff_rvalid & m_wgranted;
 assign wff_d            = { WDATA, WSTRB, WLAST };
 assign { wq_data, wq_strb, wq_last } = wff_q ;
 //------------------------------------
@@ -274,7 +276,7 @@ assign { bq_bid, bq_bresp } = bff_q          ;
 //------------------------------------
 //------ TRANSFER SIZE ASSIGN --------
 //------------------------------------
-assign trsize_err       = m_wsize > (AXI_SW'($clog2(AXI_BYTES)));
+assign trsize_err       = (m_wsize > (AXI_SW'($clog2(AXI_BYTES)))) | m_wsize_error;
 //------------------------------------
 //------ WRITE RESPONSE VALUE --------
 //------------------------------------
