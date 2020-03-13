@@ -40,10 +40,10 @@ module asi //import asi_pkg::*;
     AXI_WSTRBW = AXI_BYTES           , // AXI WSTRB BITS WIDTH
     AXI_BYTESW = $clog2(AXI_BYTES+1)   
 )(
-    //---- AXI GLOBAL SIGNALS -------------------
+    //---- AXI GLOBAL SIGNALS -----------------------
     input  logic                    ACLK            ,
     input  logic                    ARESETn         ,
-    //---- AXI ADDRESS WRITE SIGNALS ------------
+    //---- AXI ADDRESS WRITE SIGNALS ----------------
     input  logic [AXI_IW-1     : 0] AWID            ,
     input  logic [AXI_AW-1     : 0] AWADDR          ,
     input  logic [AXI_LW-1     : 0] AWLEN           ,
@@ -55,18 +55,18 @@ module asi //import asi_pkg::*;
     input  logic [2            : 0] AWPROT          , // NO LOADS
     input  logic [3            : 0] AWQOS           , // NO LOADS
     input  logic [3            : 0] AWREGION        , // NO LOADS
-    //---- AXI DATA WRITE SIGNALS ---------------
+    //---- AXI DATA WRITE SIGNALS -------------------
     input  logic [AXI_DW-1     : 0] WDATA           ,
     input  logic [AXI_WSTRBW-1 : 0] WSTRB           ,
     input  logic                    WLAST           ,
     input  logic                    WVALID          ,
     output logic                    WREADY          ,
-    //---- AXI WRITE RESPONSE SIGNALS -----------
+    //---- AXI WRITE RESPONSE SIGNALS ---------------
     output logic [AXI_IW-1     : 0] BID             ,
     output logic [AXI_BRESPW-1 : 0] BRESP           ,
     output logic                    BVALID          ,
     input  logic                    BREADY          ,
-    //---- READ ADDRESS CHANNEL -----------------
+    //---- READ ADDRESS CHANNEL ---------------------
     input  logic [AXI_IW-1     : 0] ARID            ,
     input  logic [AXI_AW-1     : 0] ARADDR          ,
     input  logic [AXI_LW-1     : 0] ARLEN           ,
@@ -78,14 +78,14 @@ module asi //import asi_pkg::*;
     input  logic [2            : 0] ARPROT          , // NO LOADS 
     input  logic [3            : 0] ARQOS           , // NO LOADS 
     input  logic [3            : 0] ARREGION        , // NO LOADS
-    //---- READ DATA CHANNEL --------------------
+    //---- READ DATA CHANNEL ------------------------
     output logic [AXI_IW-1     : 0] RID             ,
     output logic [AXI_DW-1     : 0] RDATA           ,
     output logic [AXI_RRESPW-1 : 0] RRESP           ,
     output logic                    RLAST           ,
     output logic                    RVALID          ,
     input  logic                    RREADY          ,
-    //---- USER LOGIC SIGNALS -------------------
+    //---- USER LOGIC SIGNALS -----------------------
     input  logic                    usr_clk         ,
     input  logic                    usr_reset_n     ,
     //ADDRESS & ENABLE
@@ -106,9 +106,9 @@ timeunit 1ns;
 timeprecision 1ps;
 typedef enum logic [1:0] {ARB_IDLE=2'b00, ARB_READ, ARB_WRITE } TYPE_ARB;
 typedef enum logic { RGNT=1'b0, WGNT } TYPE_GNT;
-//------------------------------------
-//------ r_inf/w_inf SIGNALS ---------
-//------------------------------------
+//--------------------------------------
+//------ r_inf/w_inf SIGNALS -----------
+//--------------------------------------
 //ADDRESS
 logic [AXI_AW-1     : 0] m_addr        ;
 //W CHANNEL
@@ -118,16 +118,16 @@ logic                    m_we          ;
 //R CHANNEL
 logic [AXI_DW-1     : 0] m_rdata       ;
 logic                    m_re          ; // asi read request("m_raddr" valid)
-//------------------------------------
-//------ EASY SIGNALS ----------------
-//------------------------------------
+//--------------------------------------
+//------ EASY SIGNALS ------------------
+//--------------------------------------
 logic                    rlast         ;
 logic                    wlast         ;
 logic                    arff_v        ;
 logic                    awff_v        ;
-//------------------------------------
-//------ asi SIGNALS -----------------
-//------------------------------------
+//--------------------------------------
+//------ asi SIGNALS -------------------
+//--------------------------------------
 //ARBITER SIGNALS
 logic                    m_arff_rvalid ; // (AR FIFO NOT EMPTY) && (BP_st_cur==BP_FIRST)
 logic                    m_awff_rvalid ; // (AW FIFO NOT EMPTY) && (BP_st_cur==BP_FIRST)
@@ -154,9 +154,9 @@ logic                    m_rvalid      ; // rdata valid("m_rdata" valid)
 //ADDRESSES
 logic [AXI_AW-1     : 0] m_waddr       ;
 logic [AXI_AW-1     : 0] m_raddr       ;
-//------------------------------------
-//------ ARBITER STATE MACHINE -------
-//------------------------------------
+//--------------------------------------
+//------ ARBITER STATE MACHINE ---------
+//--------------------------------------
 TYPE_ARB st_cur;
 TYPE_ARB st_nxt;
 //------------------------------------

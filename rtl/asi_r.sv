@@ -40,10 +40,10 @@ module asi_r //import asi_pkg::*;
     AXI_WSTRBW = AXI_BYTES           , // AXI WSTRB BITS WIDTH
     AXI_BYTESW = $clog2(AXI_BYTES+1)   
 )(
-    //---- AXI GLOBAL SIGNALS -------------------
+    //---- AXI GLOBAL SIGNALS ---------------------
     input  logic                    ACLK          ,
     input  logic                    ARESETn       ,
-    //---- READ ADDRESS CHANNEL -----------------
+    //---- READ ADDRESS CHANNEL -------------------
     input  logic [AXI_IW-1     : 0] ARID          ,
     input  logic [AXI_AW-1     : 0] ARADDR        ,
     input  logic [AXI_LW-1     : 0] ARLEN         ,
@@ -51,14 +51,14 @@ module asi_r //import asi_pkg::*;
     input  logic [AXI_BURSTW-1 : 0] ARBURST       ,
     input  logic                    ARVALID       ,
     output logic                    ARREADY       ,
-    //---- READ DATA CHANNEL --------------------
+    //---- READ DATA CHANNEL ----------------------
     output logic [AXI_IW-1     : 0] RID           ,
     output logic [AXI_DW-1     : 0] RDATA         ,
     output logic [AXI_RRESPW-1 : 0] RRESP         ,
     output logic                    RLAST         ,
     output logic                    RVALID        ,
     input  logic                    RREADY        ,
-    //---- USER LOGIC SIGNALS -------------------
+    //---- USER LOGIC SIGNALS ---------------------
     input  logic                    usr_clk       ,
     input  logic                    usr_reset_n   ,
     //AR CHANNEL
@@ -99,15 +99,15 @@ localparam [AXI_BURSTW-1 : 0] BT_RESERVED  = AXI_BURSTW'(3);
 // BP_BURST: transfer the rest  transfer(s)
 // BP_IDLE : do nothing
 typedef enum logic [1:0] { BP_FIRST=2'b00, BP_BURST, BP_IDLE } RBURST_PHASE; 
-//------------------------------------
-//------ EASY SIGNALS ----------------
-//------------------------------------
+//-----------------------------------------
+//------ EASY SIGNALS ---------------------
+//-----------------------------------------
 wire                     clk              ;
 wire                     rst_n            ;
 wire                     aff_rvalid       ;
-//------------------------------------
-//------ AR CHANNEL FIFO SIGNALS -----
-//------------------------------------
+//-----------------------------------------
+//------ AR CHANNEL FIFO SIGNALS ----------
+//-----------------------------------------
 logic                    aff_wreset_n     ;
 logic                    aff_rreset_n     ;
 logic                    aff_wclk         ;
@@ -118,9 +118,9 @@ logic                    aff_wfull        ;
 logic                    aff_rempty       ;
 logic [AFF_DW-1     : 0] aff_d            ;
 logic [AFF_DW-1     : 0] aff_q            ;
-//------------------------------------
-//------ R CHANNEL FIFO SIGNALS ------
-//------------------------------------
+//-----------------------------------------
+//------ R CHANNEL FIFO SIGNALS -----------
+//-----------------------------------------
 logic                    rff_wreset_n     ;
 logic                    rff_rreset_n     ;
 logic                    rff_wclk         ;
@@ -132,32 +132,32 @@ logic                    rff_wafull       ;
 logic                    rff_rempty       ;
 logic [RFF_DW-1     : 0] rff_d            ;
 logic [RFF_DW-1     : 0] rff_q            ;
-//------------------------------------
-//------ AR FIFO Q SIGNALS -----------
-//------------------------------------
+//-----------------------------------------
+//------ AR FIFO Q SIGNALS ----------------
+//-----------------------------------------
 logic [AXI_IW-1     : 0] aq_id            ;
 logic [AXI_AW-1     : 0] aq_addr          ;
 logic [AXI_LW-1     : 0] aq_len           ;
 logic [AXI_SW-1     : 0] aq_size          ;
 logic [AXI_BURSTW-1 : 0] aq_burst         ;
-//------------------------------------
-//------ AR FIFO Q SIGNALS LATCH -----
-//------------------------------------
+//-----------------------------------------
+//------ AR FIFO Q SIGNALS LATCH ----------
+//-----------------------------------------
 logic [AXI_IW-1     : 0] aq_id_latch      ;
 logic [AXI_AW-1     : 0] aq_addr_latch    ;
 logic [AXI_LW-1     : 0] aq_len_latch     ;
 logic [AXI_SW-1     : 0] aq_size_latch    ;
 logic [AXI_BURSTW-1 : 0] aq_burst_latch   ;
-//------------------------------------
-//------ R FIFO Q SIGNALS ------------ 
-//------------------------------------
+//-----------------------------------------
+//------ R FIFO Q SIGNALS -----------------
+//-----------------------------------------
 logic [AXI_IW-1     : 0] rq_id            ;
 logic [AXI_DW-1     : 0] rq_data          ;
 logic [AXI_RRESPW-1 : 0] rq_resp          ;
 logic                    rq_last          ;
-//------------------------------------
-//------ AXI BURST ADDRESSES ---------
-//------------------------------------
+//-----------------------------------------
+//------ AXI BURST ADDRESSES --------------
+//-----------------------------------------
 logic [AXI_BYTESW-1 : 0] burst_addr_inc   ;
 logic [AXI_AW-0     : 0] burst_addr_nxt   ;
 logic [AXI_AW-0     : 0] burst_addr_nxt_b ; // bounded to 4KB 
@@ -166,23 +166,23 @@ logic [AXI_LW-1     : 0] burst_cc         ;
 logic [AXI_AW-1     : 0] start_addr       ;
 logic [AXI_AW-1     : 0] start_addr_mask  ;
 logic [AXI_AW-1     : 0] aligned_addr     ;
-//------------------------------------
-//------ R FIFO D SIGNALS ------------
-//------------------------------------
+//-----------------------------------------
+//------ R FIFO D SIGNALS -----------------
+//-----------------------------------------
 logic [AXI_RRESPW-1 : 0] m_rresp_ws       ;
 logic                    burst_last_ws    ;
 logic [AXI_IW-1     : 0] m_rid_ws         ;
-//------------------------------------
-//------ TRANSFER SIZE ERROR ---------
-//------------------------------------
+//-----------------------------------------
+//------ TRANSFER SIZE ERROR --------------
+//-----------------------------------------
 logic                    trsize_err       ;
-//------------------------------------
-//------ READ RESPONSE VALUE ---------
-//------------------------------------
+//-----------------------------------------
+//------ READ RESPONSE VALUE --------------
+//-----------------------------------------
 logic [AXI_RRESPW-1 : 0] m_rresp          ;
-//------------------------------------
-//------ STATE MACHINE VARIABLES -----
-//------------------------------------
+//-----------------------------------------
+//------ STATE MACHINE VARIABLES ----------
+//-----------------------------------------
 logic                    burst_last       ;
 RBURST_PHASE             st_cur          ;
 RBURST_PHASE             st_nxt          ; 
