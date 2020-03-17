@@ -15,6 +15,7 @@ module afifo #(
     output logic            wfull    ,
     output logic            wafull   , // almost full
     output logic            rempty   ,
+    output logic [AW   : 0] wcnt     , // write side counter
     input  logic [DW-1 : 0] d        ,
     output logic [DW-1 : 0] q         
 );
@@ -26,6 +27,7 @@ wire  [AW:0]  WNum;
 assign wfull  = ~FullN ;
 assign rempty = ~EmptyN;
 assign wafull = WNum >= AFN;
+assign wcnt   = WNum;
 util_fifoa #(
     .AW ( AW ),
     .DW ( DW )

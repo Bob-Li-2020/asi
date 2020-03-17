@@ -92,7 +92,10 @@ localparam AFF_DW = AXI_IW + AXI_AW + AXI_LW + AXI_SW + AXI_BURSTW,
            BFF_DW = AXI_IW + AXI_BRESPW;
 localparam OADDR_DEPTH = ASI_OD , // outstanding addresses buffer depth
            WDATA_DEPTH = ASI_WD , // write data buffer depth
-           BRESP_DEPTH = ASI_BD ; // write response buffer depth
+           BRESP_DEPTH = ASI_BD , // write response buffer depth
+           AFF_AW = $clog2(OADDR_DEPTH),
+           WFF_AW = $clog2(WDATA_DEPTH),
+           BFF_AW = $clog2(BRESP_DEPTH);
 localparam [AXI_BURSTW-1 : 0] BT_FIXED     = AXI_BURSTW'(0);
 localparam [AXI_BURSTW-1 : 0] BT_INCR      = AXI_BURSTW'(1);
 localparam [AXI_BURSTW-1 : 0] BT_WRAP      = AXI_BURSTW'(2);
@@ -125,6 +128,7 @@ logic                    aff_we           ;
 logic                    aff_re           ;
 logic                    aff_wfull        ;
 logic                    aff_rempty       ;
+logic [AFF_AW       : 0] aff_wcnt         ;
 logic [AFF_DW-1     : 0] aff_d            ;
 logic [AFF_DW-1     : 0] aff_q            ;
 //-----------------------------------------
@@ -138,6 +142,7 @@ logic                    wff_we           ;
 logic                    wff_re           ;
 logic                    wff_wfull        ;
 logic                    wff_rempty       ;
+logic [WFF_AW       : 0] wff_wcnt         ;
 logic [WFF_DW-1     : 0] wff_d            ;
 logic [WFF_DW-1     : 0] wff_q            ;
 //-----------------------------------------
@@ -151,6 +156,7 @@ logic                    bff_we           ;
 logic                    bff_re           ;
 logic                    bff_wfull        ;
 logic                    bff_rempty       ;
+logic [BFF_AW       : 0] bff_wcnt         ;
 logic [BFF_DW-1     : 0] bff_d            ;
 logic [BFF_DW-1     : 0] bff_q            ;
 //-----------------------------------------
@@ -349,8 +355,8 @@ end
 //------ AW CHANNEL BUFFER -----------
 //------------------------------------
 afifo #(
-    .AW ( $clog2(OADDR_DEPTH) ),
-    .DW ( AFF_DW              )
+    .AW ( AFF_AW ),
+    .DW ( AFF_DW )
 ) aw_buffer (
     .wreset_n ( aff_wreset_n ),
     .rreset_n ( aff_rreset_n ),
@@ -361,6 +367,7 @@ afifo #(
     .wfull    ( aff_wfull    ),
     .wafull   (              ),
     .rempty   ( aff_rempty   ),
+    .wcnt     (              ),
     .d        ( aff_d        ),
     .q        ( aff_q        )
 );
@@ -368,8 +375,8 @@ afifo #(
 //------ W CHANNEL BUFFER ------------
 //------------------------------------
 afifo #(
-    .AW ( $clog2(WDATA_DEPTH) ),
-    .DW ( WFF_DW              )
+    .AW ( WFF_AW ),
+    .DW ( WFF_DW )
 ) w_buffer (
     .wreset_n ( wff_wreset_n ),
     .rreset_n ( wff_rreset_n ),
@@ -380,6 +387,7 @@ afifo #(
     .wfull    ( wff_wfull    ),
     .wafull   (              ),
     .rempty   ( wff_rempty   ),
+    .wcnt     (              ),
     .d        ( wff_d        ),
     .q        ( wff_q        )
 );
@@ -387,8 +395,8 @@ afifo #(
 //------ B CHANNEL BUFFER ------------
 //------------------------------------
 afifo #(
-    .AW ( $clog2(BRESP_DEPTH) ),
-    .DW ( BFF_DW              )
+    .AW ( BFF_AW ),
+    .DW ( BFF_DW )
 ) b_buffer (
     .wreset_n ( bff_wreset_n ),
     .rreset_n ( bff_rreset_n ),
@@ -399,6 +407,7 @@ afifo #(
     .wfull    ( bff_wfull    ),
     .wafull   (              ),
     .rempty   ( bff_rempty   ),
+    .wcnt     (              ),
     .d        ( bff_d        ),
     .q        ( bff_q        )
 );

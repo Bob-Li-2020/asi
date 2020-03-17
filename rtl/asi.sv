@@ -150,7 +150,6 @@ logic [AXI_SW-1     : 0] m_rsize       ;
 logic [AXI_BURSTW-1 : 0] m_rburst      ;
 //R CHANNEL
 logic                    m_rlast       ; // asi read request last cycle
-logic                    m_rvalid      ; // rdata valid("m_rdata" valid)
 //ADDRESSES
 logic [AXI_AW-1     : 0] m_waddr       ;
 logic [AXI_AW-1     : 0] m_raddr       ;
@@ -159,23 +158,6 @@ logic [AXI_AW-1     : 0] m_raddr       ;
 //--------------------------------------
 TYPE_ARB st_cur;
 TYPE_ARB st_nxt;
-//------------------------------------
-//------ READ WAIT STATE CONTROL -----
-//------------------------------------
-generate 
-    if(SLV_WS==0) begin: WS0
-        assign m_rvalid = m_re;
-    end: WS0
-    else if(SLV_WS==1) begin: WS1
-        always_ff @(posedge usr_clk)
-            m_rvalid <= m_re;
-    end: WS1
-    else if(SLV_WS>=2) begin: WS_N
-        logic [SLV_WS-2 : 0] m_re_ff ;
-        always_ff @(posedge usr_clk)
-            {m_rvalid, m_re_ff} <= {m_re_ff, m_re};
-    end: WS_N
-endgenerate
 //------------------------------------
 //---- TOP PORTS ASSIGN --------------
 //------------------------------------

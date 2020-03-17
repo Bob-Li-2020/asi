@@ -71,7 +71,6 @@ module asi_r //import asi_pkg::*;
     output logic                    m_re          ,
     output logic                    m_rlast       ,
     input  logic [AXI_DW-1     : 0] m_rdata       ,
-    input  logic                    m_rvalid      ,
     //ARBITER SIGNALS
     output logic                    m_arff_rvalid ,
     input  logic                    m_rgranted    ,
@@ -87,7 +86,9 @@ timeprecision 1ps;
 localparam AFF_DW = AXI_IW + AXI_AW + AXI_LW + AXI_SW + AXI_BURSTW,
            RFF_DW = AXI_IW + AXI_DW + AXI_RRESPW + 1;
 localparam OADDR_DEPTH = ASI_OD , // outstanding addresses buffer depth
-           RDATA_DEPTH = ASI_RD ; // read data buffer depth
+           RDATA_DEPTH = ASI_RD , // read data buffer depth
+           AFF_AW = $clog2(OADDR_DEPTH),
+           RFF_AW = $clog2(RDATA_DEPTH);
 localparam [AXI_BURSTW-1 : 0] BT_FIXED     = AXI_BURSTW'(0);
 localparam [AXI_BURSTW-1 : 0] BT_INCR      = AXI_BURSTW'(1);
 localparam [AXI_BURSTW-1 : 0] BT_WRAP      = AXI_BURSTW'(2);
@@ -99,6 +100,8 @@ localparam [AXI_BURSTW-1 : 0] BT_RESERVED  = AXI_BURSTW'(3);
 // BP_BURST: transfer the rest  transfer(s)
 // BP_IDLE : do nothing
 typedef enum logic [1:0] { BP_FIRST=2'b00, BP_BURST, BP_IDLE } RBURST_PHASE; 
+//------ TOP PORTS ------------------------
+logic                    m_rvalid         ;
 //-----------------------------------------
 //------ EASY SIGNALS ---------------------
 //-----------------------------------------
@@ -116,6 +119,7 @@ logic                    aff_we           ;
 logic                    aff_re           ;
 logic                    aff_wfull        ;
 logic                    aff_rempty       ;
+logic [AFF_AW       : 0] aff_wcnt         ;
 logic [AFF_DW-1     : 0] aff_d            ;
 logic [AFF_DW-1     : 0] aff_q            ;
 //-----------------------------------------
@@ -130,8 +134,11 @@ logic                    rff_re           ;
 logic                    rff_wfull        ;
 logic                    rff_wafull       ;
 logic                    rff_rempty       ;
+logic [RFF_AW       : 0] rff_wcnt         ;
 logic [RFF_DW-1     : 0] rff_d            ;
 logic [RFF_DW-1     : 0] rff_q            ;
+//---
+logic                    rff_wafull2      ;
 //-----------------------------------------
 //------ AR FIFO Q SIGNALS ----------------
 //-----------------------------------------
@@ -187,6 +194,30 @@ logic                    burst_last       ;
 RBURST_PHASE             st_cur          ;
 RBURST_PHASE             st_nxt          ; 
 //-------------------------------------------------- LOGIC DESIGNS -----------------------------------------------------//
+//------ WS(Wait States) control
+generate 
+    if(SLV_WS==0) begin: WS0
+        assign m_rvalid = m_re;
+        assign rff_wafull2 = rff_wcnt >= RDATA_DEPTH;
+    end: WS0
+    else begin: WS_N
+        logic [SLV_WS:0] m_re_ff;
+        logic [$clog2(RDATA_DEPTH):0] rff_wcnt_af; // rff wcnt almost full
+        assign m_rvalid = m_re_ff[SLV_WS-1];
+        assign rff_wafull2 = rff_wcnt_af >= RDATA_DEPTH;
+        always_ff @(posedge usr_clk or negedge usr_reset_n)
+            if(!usr_reset_n)
+                m_re_ff <= '0;
+            else
+                m_re_ff <= {m_re_ff[SLV_WS-1:0], m_re};
+        always_comb begin
+            rff_wcnt_af = rff_wcnt;
+            for(int k=0;k<SLV_WS;k++) begin
+                rff_wcnt_af = rff_wcnt_af+m_re_ff[k];
+            end
+        end
+    end: WS_N
+endgenerate
 
 //------------------------------------
 //------ OUTPUT PORTS ASSIGN ---------
@@ -205,7 +236,7 @@ assign m_rlen           = st_cur==BP_FIRST ? aq_len   : aq_len_latch;
 assign m_rsize          = st_cur==BP_FIRST ? aq_size  : aq_size_latch;
 assign m_rburst         = st_cur==BP_FIRST ? aq_burst : aq_burst_latch;
 assign m_raddr          = st_cur==BP_FIRST ? start_addr : burst_addr;
-assign m_re             = aff_re || st_cur==BP_BURST && (!rff_wafull);
+assign m_re             = aff_re || st_cur==BP_BURST && (!rff_wafull2);
 assign m_rlast          = burst_last       ;
 assign m_arff_rvalid    = aff_rvalid       ;
 assign error_w4KB       = burst_addr_nxt[12]!=start_addr[12] && st_cur==BP_BURST;
@@ -223,7 +254,7 @@ assign aff_rreset_n     = usr_reset_n      ;
 assign aff_wclk         = ACLK             ;
 assign aff_rclk         = usr_clk          ;
 assign aff_we           = ARVALID & ARREADY;
-assign aff_re           = aff_rvalid & (!rff_wafull) & m_rgranted;
+assign aff_re           = aff_rvalid & (!rff_wafull2) & m_rgranted;
 assign aff_d            = { ARID, ARADDR, ARLEN, ARSIZE, ARBURST };
 assign { aq_id, aq_addr, aq_len, aq_size, aq_burst } = aff_q;
 //------------------------------------
@@ -249,7 +280,7 @@ assign m_rresp          = { trsize_err, 1'b0 };
 //------ ADDRESS CALCULATION ---------
 //------------------------------------
 assign burst_addr_inc   = m_rburst==BT_FIXED ? '0 : (AXI_BYTESW'(1))<<m_rsize;
-assign burst_addr_nxt   = st_cur==BP_FIRST ? (burst_addr_inc+aligned_addr) : (st_cur==BP_BURST ? (!rff_wafull ? burst_addr_inc+burst_addr : burst_addr) : 'x);
+assign burst_addr_nxt   = st_cur==BP_FIRST ? (burst_addr_inc+aligned_addr) : (st_cur==BP_BURST ? (!rff_wafull2 ? burst_addr_inc+burst_addr : burst_addr) : 'x);
 assign burst_addr_nxt_b = burst_addr_nxt[12]==start_addr[12] ? burst_addr_nxt : (st_cur==BP_FIRST ? aligned_addr : st_cur==BP_BURST ? burst_addr : 'x);
 assign start_addr       = st_cur==BP_FIRST ? aq_addr : aq_addr_latch;
 assign aligned_addr     = start_addr_mask & start_addr;
@@ -264,7 +295,7 @@ end
 //------------------------------------
 //------ STATE MACHINES CONTROL ------
 //------------------------------------
-assign burst_last = (m_re && aq_len=='0 && st_cur==BP_FIRST) || (burst_cc==aq_len_latch && (!rff_wafull) && st_cur==BP_BURST);
+assign burst_last = (m_re && aq_len=='0 && st_cur==BP_FIRST) || (burst_cc==aq_len_latch && (!rff_wafull2) && st_cur==BP_BURST);
 always_ff @(posedge clk or negedge rst_n) begin 
     if(!rst_n) 
         st_cur <= BP_IDLE; 
@@ -288,7 +319,7 @@ always_ff @(posedge clk or negedge rst_n) begin
         burst_addr <= st_nxt==BP_BURST ? burst_addr_nxt_b[0 +: AXI_AW] : 'x;
     end
     else if(st_cur==BP_BURST) begin
-        burst_cc   <= burst_cc+(!rff_wafull);
+        burst_cc   <= burst_cc+(!rff_wafull2);
         burst_addr <= burst_addr_nxt_b[0 +: AXI_AW];
     end
 end
@@ -296,16 +327,16 @@ end
 //------ R FIFO D SIGNALS ------------
 //------------------------------------
 generate 
-    if(SLV_WS==0) begin: WS0
+    if(SLV_WS==0) begin: INFO_WS0
         assign m_rresp_ws    = m_rresp   ;
         assign burst_last_ws = burst_last;
         assign m_rid_ws      = m_rid     ;
-    end: WS0
-    else if(SLV_WS==1) begin: WS1
+    end: INFO_WS0
+    else if(SLV_WS==1) begin: INFO_WS1
         always_ff @(posedge clk)
             {m_rresp_ws, burst_last_ws, m_rid_ws} <= {m_rresp, burst_last, m_rid};
-    end: WS1
-    else begin: WS_N
+    end: INFO_WS1
+    else begin: INFO_WSN
         wire  [AXI_RRESPW+1+AXI_IW-1 : 0] rfd_sigs = {m_rresp, burst_last, m_rid};
         logic [AXI_RRESPW+1+AXI_IW-1 : 0] rfd_sigs_ff[SLV_WS] ;
         always_ff @(posedge clk) begin
@@ -314,7 +345,7 @@ generate
                 rfd_sigs_ff[i] <= rfd_sigs_ff[i-1];
         end
         assign {m_rresp_ws, burst_last_ws, m_rid_ws} = rfd_sigs_ff[SLV_WS-1];
-    end
+    end: INFO_WSN
 endgenerate
 //------------------------------------
 //------ AR FIFO Q SIGNALS LATCH -----
@@ -332,8 +363,8 @@ end
 //------ AR CHANNEL BUFFER -----------
 //------------------------------------
 afifo #(
-    .AW ( $clog2(OADDR_DEPTH) ),
-    .DW ( AFF_DW              )
+    .AW ( AFF_AW ),
+    .DW ( AFF_DW )
 ) ar_buffer (
     .wreset_n ( aff_wreset_n ),
     .rreset_n ( aff_rreset_n ),
@@ -344,6 +375,7 @@ afifo #(
     .wfull    ( aff_wfull    ),
     .wafull   (              ),
     .rempty   ( aff_rempty   ),
+    .wcnt     ( aff_wcnt     ),
     .d        ( aff_d        ),
     .q        ( aff_q        )
 );
@@ -351,9 +383,8 @@ afifo #(
 //------ R CHANNEL BUFFER ------------
 //------------------------------------
 afifo #(
-    .AW  ( $clog2(RDATA_DEPTH) ),
-    .DW  ( RFF_DW              ),
-    .AFN ( RDATA_DEPTH-4       )
+    .AW  ( RFF_AW ),
+    .DW  ( RFF_DW )
 ) r_buffer (
     .wreset_n ( rff_wreset_n ),
     .rreset_n ( rff_rreset_n ),
@@ -362,8 +393,9 @@ afifo #(
     .we       ( rff_we       ),
     .re       ( rff_re       ),
     .wfull    ( rff_wfull    ),
-    .wafull   ( rff_wafull   ),
+    .wafull   (              ),
     .rempty   ( rff_rempty   ),
+    .wcnt     ( rff_wcnt     ),
     .d        ( rff_d        ),
     .q        ( rff_q        )
 );
